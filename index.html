@@ -159,7 +159,7 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 <body>
 <div id="app"></div>
 <script src="config.js"></script>
-<script src="vendor/supabase.js"></script>
+<script src="supabase.js"></script>
 <script>
 /* ===== 題庫（所有遊戲共用）===== */
 var SEED=[["ㄇㄚ","媽"],["ㄉㄚˋ","大"],["ㄏㄠˇ","好"],["ㄕㄨㄟˇ","水"],["ㄖˋ","日"],["ㄩㄝˋ","月"],["ㄏㄨㄛˇ","火"],["ㄖㄣˊ","人"],["ㄕㄢ","山"],["ㄎㄡˇ","口"]];
@@ -562,10 +562,11 @@ renderEditor();
 var roomApi=null,myId=(window.crypto&&crypto.randomUUID?crypto.randomUUID():"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 function getRoom(cb){
   if(roomApi){cb(roomApi);return}
-  var C=window.GAME_CONFIG||{};
-  if(!C.SUPABASE_URL||!C.SUPABASE_KEY||!window.supabase||!supabase.createClient){cb(null);return}
+  var C=window.GAME_CONFIG||{};window.__roomErr="";
+  if(!C.SUPABASE_URL||!C.SUPABASE_KEY){window.__roomErr="config.js 沒有載入或沒有填入設定";cb(null);return}
+  if(!window.supabase||!supabase.createClient){window.__roomErr="supabase.js 沒有載入";cb(null);return}
   var client;
-  try{client=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},realtime:{params:{eventsPerSecond:30}}})}catch(e){cb(null);return}
+  try{client=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},realtime:{params:{eventsPerSecond:30}}})}catch(e){window.__roomErr="createClient 失敗："+e.message;cb(null);return}
   roomApi={join:function(name){return new Promise(function(res,rej){
     var ch=client.channel("room-"+name,{config:{broadcast:{self:false,ack:false},presence:{key:myId}}}),
         handlers={},peerFns=[],ok=false,tm=null;
@@ -581,13 +582,14 @@ function getRoom(cb){
       presence:function(o){setTimeout(function(){try{ch.track(o)}catch(e){}},Math.random()*2000)}, // 錯開加入時間，避免多人同時加入超過速率限制
       leave:function(){try{ch.unsubscribe()}catch(e){}}};
     tm=setTimeout(function(){if(!ok){try{ch.unsubscribe()}catch(e){}rej(new Error("timeout"))}},10000);
-    ch.subscribe(function(status){
+    ch.subscribe(function(status,err){
       if(status==="SUBSCRIBED"&&!ok){ok=true;clearTimeout(tm);res(room)}
-      else if(!ok&&(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED")){clearTimeout(tm);rej(new Error(status))}});
+      else if(!ok&&(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED")){clearTimeout(tm);rej(new Error(status+(err&&err.message?"："+err.message:"")))}});
   })}};
   cb(roomApi);
 }
-function noRoom(){app.innerHTML=topbar("多人連線")+'<p class="msg">目前無法連線。請確認網路，或請老師檢查網站的連線設定。單人遊戲仍可使用。</p>';bindBack()}
+function noRoom(e){var C=window.GAME_CONFIG||{},why=window.__roomErr||(e&&e.message)||"連線失敗";
+  app.innerHTML=topbar("多人連線")+'<p class="msg">目前無法連線。請確認網路，或請老師檢查網站的連線設定。單人遊戲仍可使用。</p><div class="card nz" style="font-size:13px;word-break:break-all;color:var(--mute)">診斷資訊（給老師看）<br>原因：'+esc(why)+'<br>網址：'+esc(C.SUPABASE_URL||"（空）")+'<br>金鑰長度：'+esc(String((C.SUPABASE_KEY||"").length))+'，開頭：'+esc((C.SUPABASE_KEY||"").slice(0,16))+'</div>';bindBack()}
 
 function host(){
   getRoom(function(R){
@@ -602,7 +604,7 @@ function host(){
         answers[m.peer]={c:m.data.c,name:players[m.peer]||m.data.name||"?"};
         var cnt=Object.keys(answers).length;var e=$("#cnt");if(e)e.textContent=cnt+" / "+Object.keys(players).length+" 已作答"}));
       lobby();
-    }).catch(function(){noRoom()});
+    }).catch(function(e){noRoom(e)});
     function lobby(){
       var names=Object.keys(players).map(function(k){return players[k]});
       app.innerHTML=topbar("👩‍🏫 主持")+'<p class="msg">請學生輸入房號</p><div class="big">'+code+'</div><div class="card"><b>已加入（'+names.length+'）</b><br>'+names.map(function(x){return '<span class="pill">'+esc(x)+'</span>'}).join("")+'</div><div class="row"><button id="start" '+(names.length&&bank.length>=4?"":"disabled")+'>選擇題搶答（10 題）</button><button id="sstart" '+(names.length&&bank.length>=4?"":"disabled")+'>🐍 蛇棋</button></div>'+(bank.length<4?'<p class="msg">題庫至少要 4 題</p>':"");
@@ -699,7 +701,7 @@ function join(){
           document.querySelectorAll("#sm [data-o]").forEach(function(b){b.onclick=function(){document.querySelectorAll("#sm [data-o]").forEach(function(x){x.disabled=true});b.style.borderColor="var(--pri)";rm.emit("ans",{g:"s",n:d.n,c:b.dataset.o}).catch(function(){})}})}));
         unsub.push(rm.on("sr",function(m){var d=m.data;if(!d||SB.mk!=="q")return;
           SB.modal(SB.res(d.ok,d.a),"r");setTimeout(function(){if(SB.mk==="r")SB.modal()},1500)}));
-      }).catch(function(){noRoom()});
+      }).catch(function(e){noRoom(e)});
     };
   });
   function wait(h){app.innerHTML=topbar("多人連線")+'<div class="q" style="font-size:28px">'+h+'</div>';bindBack()}
@@ -708,15 +710,15 @@ function join(){
 /* ===== 直式注音（依教育部《國語注音符號手冊》：注音在字右側，輕聲點在上、調號在右）===== */
 var zon=ls("zy_v1")!=="0",ZW={},ZC={},ZMAX=1,ZT={"2":"\u02ca","3":"\u02c7","4":"\u02cb"};
 function zyFix(v){var q="",t="";if(v.charAt(0)==="0"){q="\u02d9";v=v.slice(1)}var l=v.charAt(v.length-1);if(ZT[l]){t=ZT[l];v=v.slice(0,-1)}return[q,v,t]}
-"一:ㄧ;上:ㄕㄤ4;下:ㄒㄧㄚ4;並:ㄅㄧㄥ4;中:ㄓㄨㄥ;主:ㄓㄨ3;亂:ㄌㄨㄢ4;了:0ㄌㄜ;人:ㄖㄣ2;仍:ㄖㄥ2;代:ㄉㄞ4;位:ㄨㄟ4;作:ㄗㄨㄛ4;你:ㄋㄧ3;使:ㄕ3;來:ㄌㄞ2;例:ㄌㄧ4;個:ㄍㄜ4;停:ㄊㄧㄥ2;先:ㄒㄧㄢ;入:ㄖㄨ4;全:ㄑㄩㄢ2;公:ㄍㄨㄥ;共:ㄍㄨㄥ4;其:ㄑㄧ2;再:ㄗㄞ4;出:ㄔㄨ;分:ㄈㄣ;切:ㄑㄧㄝ;刪:ㄕㄢ;到:ㄉㄠ4;則:ㄗㄜ2;前:ㄑㄧㄢ2;剛:ㄍㄤ;剩:ㄕㄥ4;功:ㄍㄨㄥ;加:ㄐㄧㄚ;勝:ㄕㄥ4;匯:ㄏㄨㄟ4;原:ㄩㄢ2;受:ㄕㄡ4;口:ㄎㄡ3;只:ㄓ3;可:ㄎㄜ3;台:ㄊㄞ2;同:ㄊㄨㄥ2;名:ㄇㄧㄥ2;和:ㄏㄜ2;咬:ㄧㄠ3;單:ㄉㄢ;嗎:0ㄇㄚ;回:ㄏㄨㄟ2;在:ㄗㄞ4;場:ㄔㄤ3;增:ㄗㄥ;多:ㄉㄨㄛ;大:ㄉㄚ4;太:ㄊㄞ4;失:ㄕ;好:ㄏㄠ3;如:ㄖㄨ2;始:ㄕ3;媽:ㄇㄚ;子:ㄗ3;字:ㄗ4;學:ㄒㄩㄝ2;定:ㄉㄧㄥ4;家:ㄐㄧㄚ;對:ㄉㄨㄟ4;少:ㄕㄠ3;就:ㄐㄧㄡ4;局:ㄐㄩ2;山:ㄕㄢ;已:ㄧ3;布:ㄅㄨ4;師:ㄕ;平:ㄆㄧㄥ2;庫:ㄎㄨ4;往:ㄨㄤ3;後:ㄏㄡ4;得:ㄉㄜ2;成:ㄔㄥ2;戰:ㄓㄢ4;戲:ㄒㄧ4;房:ㄈㄤ2;所:ㄙㄨㄛ3;才:ㄘㄞ2;批:ㄆㄧ;把:ㄅㄚ3;折:ㄓㄜ2;抵:ㄉㄧ3;持:ㄔ2;挑:ㄊㄧㄠ3;排:ㄆㄞ2;換:ㄏㄨㄢ4;搶:ㄑㄧㄤ3;擇:ㄗㄜ2;擋:ㄉㄤ3;擲:ㄓ2;敗:ㄅㄞ4;數:ㄕㄨ4;新:ㄒㄧㄣ;日:ㄖ4;是:ㄕ4;最:ㄗㄨㄟ4;會:ㄏㄨㄟ4;月:ㄩㄝ4;有:ㄧㄡ3;本:ㄅㄣ3;束:ㄕㄨ4;板:ㄅㄢ3;果:ㄍㄨㄛ3;查:ㄔㄚ2;格:ㄍㄜ2;案:ㄢ4;梯:ㄊㄧ;棋:ㄑㄧ2;棒:ㄅㄤ4;機:ㄐㄧ;次:ㄘ4;正:ㄓㄥ4;此:ㄘ3;步:ㄅㄨ4;每:ㄇㄟ3;水:ㄕㄨㄟ3;沒:ㄇㄟ2;油:ㄧㄡ2;法:ㄈㄚ3;流:ㄌㄧㄡ2;消:ㄒㄧㄠ;清:ㄑㄧㄥ;滑:ㄏㄨㄚ2;火:ㄏㄨㄛ3;無:ㄨ2;爬:ㄆㄚ2;牌:ㄆㄞ2;獲:ㄏㄨㄛ4;玩:ㄨㄢ2;現:ㄒㄧㄢ4;理:ㄌㄧ3;生:ㄕㄥ;產:ㄔㄢ3;用:ㄩㄥ4;畫:ㄏㄨㄚ4;疊:ㄉㄧㄝ2;登:ㄉㄥ;的:0ㄉㄜ;盤:ㄆㄢ2;目:ㄇㄨ4;盾:ㄉㄨㄣ4;看:ㄎㄢ4;確:ㄑㄩㄝ4;碼:ㄇㄚ3;稱:ㄔㄥ;第:ㄉㄧ4;等:ㄉㄥ3;答:ㄉㄚ2;管:ㄍㄨㄢ3;紀:ㄐㄧ4;終:ㄓㄨㄥ;結:ㄐㄧㄝ2;統:ㄊㄨㄥ3;線:ㄒㄧㄢ4;績:ㄐㄧ4;繼:ㄐㄧ4;續:ㄒㄩ4;習:ㄒㄧ2;翻:ㄈㄢ;老:ㄌㄠ3;耗:ㄏㄠ4;能:ㄋㄥ2;自:ㄗ4;至:ㄓ4;號:ㄏㄠ4;蛇:ㄕㄜ2;行:ㄒㄧㄥ2;被:ㄅㄟ4;要:ㄧㄠ4;規:ㄍㄨㄟ;計:ㄐㄧ4;設:ㄕㄜ4;認:ㄖㄣ4;請:ㄑㄧㄥ3;護:ㄏㄨ4;讓:ㄖㄤ4;走:ㄗㄡ3;起:ㄑㄧ3;超:ㄔㄠ;跳:ㄊㄧㄠ4;踩:ㄘㄞ3;身:ㄕㄣ;輪:ㄌㄨㄣ2;輸:ㄕㄨ;返:ㄈㄢ3;退:ㄊㄨㄟ4;這:ㄓㄜ4;連:ㄌㄧㄢ2;進:ㄐㄧㄣ4;遇:ㄩ4;遊:ㄧㄡ2;過:ㄍㄨㄛ4;達:ㄉㄚ2;選:ㄒㄩㄢ3;邀:ㄧㄠ;還:ㄏㄞ2;部:ㄅㄨ4;配:ㄆㄟ4;重:ㄓㄨㄥ4;錄:ㄌㄨ4;錯:ㄘㄨㄛ4;開:ㄎㄞ;間:ㄐㄧㄢ;限:ㄒㄧㄢ4;除:ㄔㄨ2;需:ㄒㄩ;面:ㄇㄧㄢ4;頁:ㄧㄝ4;預:ㄩ4;題:ㄊㄧ2;餘:ㄩ2;首:ㄕㄡ3;骰:ㄊㄡ2;鬥:ㄉㄡ4;點:ㄉㄧㄢ3;注:ㄓㄨ4;音:ㄧㄣ;關:ㄍㄨㄢ;誤:ㄨ4;項:ㄒㄧㄤ4;三:ㄙㄢ;欄:ㄌㄢ2;空:ㄎㄨㄥ;白:ㄅㄞ2;時:ㄕ2;動:ㄉㄨㄥ4;他:ㄊㄚ;補:ㄅㄨ3;四:ㄙ4;不:ㄅㄨ4;也:ㄧㄝ3;事:ㄕ4;些:ㄒㄧㄝ;件:ㄐㄧㄢ4;伐:ㄈㄚ2;但:ㄉㄢ4;住:ㄓㄨ4;值:ㄓ2;備:ㄅㄟ4;傳:ㄔㄨㄢ2;傷:ㄕㄤ;優:ㄧㄡ;充:ㄔㄨㄥ;冒:ㄇㄠ4;冰:ㄅㄧㄥ;冷:ㄌㄥ3;別:ㄅㄧㄝ2;利:ㄌㄧ4;削:ㄒㄩㄝ;劇:ㄐㄩ4;化:ㄏㄨㄚ4;區:ㄑㄩ;升:ㄕㄥ;卡:ㄎㄚ3;危:ㄨㄟ;去:ㄑㄩ4;取:ㄑㄩ3;叮:ㄉㄧㄥ;合:ㄏㄜ2;否:ㄈㄡ3;吹:ㄔㄨㄟ;命:ㄇㄧㄥ4;固:ㄍㄨ4;圖:ㄊㄨ2;地:ㄉㄧ4;型:ㄒㄧㄥ2;域:ㄩ4;堅:ㄐㄧㄢ;填:ㄊㄧㄢ2;壞:ㄏㄨㄞ4;夜:ㄧㄝ4;天:ㄊㄧㄢ;孔:ㄎㄨㄥ3;存:ㄘㄨㄣ2;安:ㄢ;害:ㄏㄞ4;富:ㄈㄨ4;寒:ㄏㄢ2;尋:ㄒㄩㄣ2;小:ㄒㄧㄠ3;尖:ㄐㄧㄢ;尚:ㄕㄤ4;屋:ㄨ;岸:ㄢ4;島:ㄉㄠ3;帶:ㄉㄞ4;度:ㄉㄨ4;建:ㄐㄧㄢ4;很:ㄏㄣ3;徑:ㄐㄧㄥ4;急:ㄐㄧ2;情:ㄑㄧㄥ2;打:ㄉㄚ3;扣:ㄎㄡ4;找:ㄓㄠ3;拾:ㄕ2;捉:ㄓㄨㄛ;捕:ㄅㄨ3;採:ㄘㄞ3;探:ㄊㄢ4;描:ㄇㄧㄠ2;損:ㄙㄨㄣ3;搭:ㄉㄚ;摘:ㄓㄞ;撈:ㄌㄠ;撐:ㄔㄥ;撿:ㄐㄧㄢ3;擊:ㄐㄧ;收:ㄕㄡ;效:ㄒㄧㄠ4;救:ㄐㄧㄡ4;料:ㄌㄧㄠ4;於:ㄩ2;易:ㄧ4;晚:ㄨㄢ3;晴:ㄑㄧㄥ2;暴:ㄅㄠ4;朗:ㄌㄤ3;木:ㄇㄨ4;未:ㄨㄟ4;材:ㄘㄞ2;東:ㄉㄨㄥ;林:ㄌㄧㄣ2;枝:ㄓ;條:ㄊㄧㄠ2;棚:ㄆㄥ2;森:ㄙㄣ;標:ㄅㄧㄠ;樹:ㄕㄨ4;殊:ㄕㄨ;毒:ㄉㄨ2;氣:ㄑㄧ4;求:ㄑㄧㄡ2;沖:ㄔㄨㄥ;沙:ㄕㄚ;沿:ㄧㄢ2;活:ㄏㄨㄛ2;浪:ㄌㄤ4;海:ㄏㄞ3;淋:ㄌㄧㄣ2;深:ㄕㄣ;測:ㄘㄜ4;源:ㄩㄢ2;準:ㄓㄨㄣ3;溫:ㄨㄣ;漂:ㄆㄧㄠ;漫:ㄇㄢ4;潮:ㄔㄠ2;濕:ㄕ;濱:ㄅㄧㄣ;灘:ㄊㄢ;為:ㄨㄟ2;烈:ㄌㄧㄝ4;熬:ㄠ2;燃:ㄖㄢ2;營:ㄧㄥ2;片:ㄆㄧㄢ4;物:ㄨ4;特:ㄊㄜ4;猛:ㄇㄥ3;獸:ㄕㄡ4;由:ㄧㄡ2;留:ㄌㄧㄡ2;略:ㄌㄩㄝ4;發:ㄈㄚ;知:ㄓ;砍:ㄎㄢ3;符:ㄈㄨ2;策:ㄘㄜ4;算:ㄙㄨㄢ4;篝:ㄍㄡ;簡:ㄐㄧㄢ3;糧:ㄌㄧㄤ2;級:ㄐㄧ2;索:ㄙㄨㄛ3;緊:ㄐㄧㄣ3;緣:ㄩㄢ2;編:ㄅㄧㄢ;群:ㄑㄩㄣ2;腐:ㄈㄨ3;與:ㄩ3;若:ㄖㄨㄛ4;草:ㄘㄠ3;著:0ㄓㄜ;藻:ㄗㄠ3;處:ㄔㄨ4;蛋:ㄉㄢ4;蟲:ㄔㄨㄥ2;衝:ㄔㄨㄥ;衡:ㄏㄥ2;裡:ㄌㄧ3;製:ㄓ4;襲:ㄒㄧ2;西:ㄒㄧ;訊:ㄒㄩㄣ4;記:ㄐㄧ4;許:ㄒㄩ3;試:ㄕ4;變:ㄅㄧㄢ4;豐:ㄈㄥ;豬:ㄓㄨ;貝:ㄅㄟ4;負:ㄈㄨ4;資:ㄗ;足:ㄗㄨ2;路:ㄌㄨ4;輯:ㄐㄧ2;述:ㄕㄨ4;造:ㄗㄠ4;遜:ㄒㄩㄣ4;避:ㄅㄧ4;邊:ㄅㄧㄢ;野:ㄧㄝ3;量:ㄌㄧㄤ4;銷:ㄒㄧㄠ;長:ㄔㄤ2;降:ㄐㄧㄤ4;險:ㄒㄧㄢ3;集:ㄐㄧ2;難:ㄋㄢ2;雨:ㄩ3;靜:ㄐㄧㄥ4;靠:ㄎㄠ4;頭:ㄊㄡ2;類:ㄌㄟ4;風:ㄈㄥ;食:ㄕ2;香:ㄒㄧㄤ;高:ㄍㄠ;魚:ㄩ2;魯:ㄌㄨ3;鳥:ㄋㄧㄠ3;木頭:ㄇㄨ4 0ㄊㄡ;避難:ㄅㄧ4 ㄋㄢ4;部分:ㄅㄨ4 ㄈㄣ4;骰子:ㄊㄡ2 0ㄗ;梯子:ㄊㄧ 0ㄗ;學生:ㄒㄩㄝ2 ㄕㄥ;老師:ㄌㄠ3 ㄕ;身分:ㄕㄣ ㄈㄣ4;切換:ㄑㄧㄝ ㄏㄨㄢ4;還原:ㄏㄨㄢ2 ㄩㄢ2;重新:ㄔㄨㄥ2 ㄒㄧㄣ;每行:ㄇㄟ3 ㄏㄤ2;排行:ㄆㄞ2 ㄏㄤ2;往回數:ㄨㄤ3 ㄏㄨㄟ2 ㄕㄨ3".split(";").forEach(function(e){var i=e.indexOf(":");if(i<1)return;var k=e.slice(0,i),v=e.slice(i+1).split(" ").map(zyFix);if(k.length>1){ZW[k]=v;ZMAX=Math.max(ZMAX,k.length)}else ZC[k]=v[0]});
+"一:ㄧ;上:ㄕㄤ4;下:ㄒㄧㄚ4;並:ㄅㄧㄥ4;中:ㄓㄨㄥ;主:ㄓㄨ3;亂:ㄌㄨㄢ4;了:0ㄌㄜ;人:ㄖㄣ2;仍:ㄖㄥ2;代:ㄉㄞ4;位:ㄨㄟ4;作:ㄗㄨㄛ4;你:ㄋㄧ3;使:ㄕ3;來:ㄌㄞ2;例:ㄌㄧ4;個:ㄍㄜ4;停:ㄊㄧㄥ2;先:ㄒㄧㄢ;入:ㄖㄨ4;全:ㄑㄩㄢ2;公:ㄍㄨㄥ;共:ㄍㄨㄥ4;其:ㄑㄧ2;再:ㄗㄞ4;出:ㄔㄨ;分:ㄈㄣ;切:ㄑㄧㄝ;刪:ㄕㄢ;到:ㄉㄠ4;則:ㄗㄜ2;前:ㄑㄧㄢ2;剛:ㄍㄤ;剩:ㄕㄥ4;功:ㄍㄨㄥ;加:ㄐㄧㄚ;勝:ㄕㄥ4;匯:ㄏㄨㄟ4;原:ㄩㄢ2;受:ㄕㄡ4;口:ㄎㄡ3;只:ㄓ3;可:ㄎㄜ3;台:ㄊㄞ2;同:ㄊㄨㄥ2;名:ㄇㄧㄥ2;和:ㄏㄜ2;咬:ㄧㄠ3;單:ㄉㄢ;嗎:0ㄇㄚ;回:ㄏㄨㄟ2;在:ㄗㄞ4;場:ㄔㄤ3;增:ㄗㄥ;多:ㄉㄨㄛ;大:ㄉㄚ4;太:ㄊㄞ4;失:ㄕ;好:ㄏㄠ3;如:ㄖㄨ2;始:ㄕ3;媽:ㄇㄚ;子:ㄗ3;字:ㄗ4;學:ㄒㄩㄝ2;定:ㄉㄧㄥ4;家:ㄐㄧㄚ;對:ㄉㄨㄟ4;少:ㄕㄠ3;就:ㄐㄧㄡ4;局:ㄐㄩ2;山:ㄕㄢ;已:ㄧ3;布:ㄅㄨ4;師:ㄕ;平:ㄆㄧㄥ2;庫:ㄎㄨ4;往:ㄨㄤ3;後:ㄏㄡ4;得:ㄉㄜ2;成:ㄔㄥ2;戰:ㄓㄢ4;戲:ㄒㄧ4;房:ㄈㄤ2;所:ㄙㄨㄛ3;才:ㄘㄞ2;批:ㄆㄧ;把:ㄅㄚ3;折:ㄓㄜ2;抵:ㄉㄧ3;持:ㄔ2;挑:ㄊㄧㄠ3;排:ㄆㄞ2;換:ㄏㄨㄢ4;搶:ㄑㄧㄤ3;擇:ㄗㄜ2;擋:ㄉㄤ3;擲:ㄓ2;敗:ㄅㄞ4;數:ㄕㄨ4;新:ㄒㄧㄣ;日:ㄖ4;是:ㄕ4;最:ㄗㄨㄟ4;會:ㄏㄨㄟ4;月:ㄩㄝ4;有:ㄧㄡ3;本:ㄅㄣ3;束:ㄕㄨ4;板:ㄅㄢ3;果:ㄍㄨㄛ3;查:ㄔㄚ2;格:ㄍㄜ2;案:ㄢ4;梯:ㄊㄧ;棋:ㄑㄧ2;棒:ㄅㄤ4;機:ㄐㄧ;次:ㄘ4;正:ㄓㄥ4;此:ㄘ3;步:ㄅㄨ4;每:ㄇㄟ3;水:ㄕㄨㄟ3;沒:ㄇㄟ2;油:ㄧㄡ2;法:ㄈㄚ3;流:ㄌㄧㄡ2;消:ㄒㄧㄠ;清:ㄑㄧㄥ;滑:ㄏㄨㄚ2;火:ㄏㄨㄛ3;無:ㄨ2;爬:ㄆㄚ2;牌:ㄆㄞ2;獲:ㄏㄨㄛ4;玩:ㄨㄢ2;現:ㄒㄧㄢ4;理:ㄌㄧ3;生:ㄕㄥ;產:ㄔㄢ3;用:ㄩㄥ4;畫:ㄏㄨㄚ4;疊:ㄉㄧㄝ2;登:ㄉㄥ;的:0ㄉㄜ;盤:ㄆㄢ2;目:ㄇㄨ4;盾:ㄉㄨㄣ4;看:ㄎㄢ4;確:ㄑㄩㄝ4;碼:ㄇㄚ3;稱:ㄔㄥ;第:ㄉㄧ4;等:ㄉㄥ3;答:ㄉㄚ2;管:ㄍㄨㄢ3;紀:ㄐㄧ4;終:ㄓㄨㄥ;結:ㄐㄧㄝ2;統:ㄊㄨㄥ3;線:ㄒㄧㄢ4;績:ㄐㄧ4;繼:ㄐㄧ4;續:ㄒㄩ4;習:ㄒㄧ2;翻:ㄈㄢ;老:ㄌㄠ3;耗:ㄏㄠ4;能:ㄋㄥ2;自:ㄗ4;至:ㄓ4;號:ㄏㄠ4;蛇:ㄕㄜ2;行:ㄒㄧㄥ2;被:ㄅㄟ4;要:ㄧㄠ4;規:ㄍㄨㄟ;計:ㄐㄧ4;設:ㄕㄜ4;認:ㄖㄣ4;請:ㄑㄧㄥ3;護:ㄏㄨ4;讓:ㄖㄤ4;走:ㄗㄡ3;起:ㄑㄧ3;超:ㄔㄠ;跳:ㄊㄧㄠ4;踩:ㄘㄞ3;身:ㄕㄣ;輪:ㄌㄨㄣ2;輸:ㄕㄨ;返:ㄈㄢ3;退:ㄊㄨㄟ4;這:ㄓㄜ4;連:ㄌㄧㄢ2;進:ㄐㄧㄣ4;遇:ㄩ4;遊:ㄧㄡ2;過:ㄍㄨㄛ4;達:ㄉㄚ2;選:ㄒㄩㄢ3;邀:ㄧㄠ;還:ㄏㄞ2;部:ㄅㄨ4;配:ㄆㄟ4;重:ㄓㄨㄥ4;錄:ㄌㄨ4;錯:ㄘㄨㄛ4;開:ㄎㄞ;間:ㄐㄧㄢ;限:ㄒㄧㄢ4;除:ㄔㄨ2;需:ㄒㄩ;面:ㄇㄧㄢ4;頁:ㄧㄝ4;預:ㄩ4;題:ㄊㄧ2;餘:ㄩ2;首:ㄕㄡ3;骰:ㄊㄡ2;鬥:ㄉㄡ4;點:ㄉㄧㄢ3;注:ㄓㄨ4;音:ㄧㄣ;關:ㄍㄨㄢ;誤:ㄨ4;項:ㄒㄧㄤ4;三:ㄙㄢ;欄:ㄌㄢ2;空:ㄎㄨㄥ;白:ㄅㄞ2;時:ㄕ2;動:ㄉㄨㄥ4;他:ㄊㄚ;補:ㄅㄨ3;四:ㄙ4;不:ㄅㄨ4;也:ㄧㄝ3;事:ㄕ4;些:ㄒㄧㄝ;件:ㄐㄧㄢ4;伐:ㄈㄚ2;但:ㄉㄢ4;住:ㄓㄨ4;值:ㄓ2;備:ㄅㄟ4;傳:ㄔㄨㄢ2;傷:ㄕㄤ;優:ㄧㄡ;充:ㄔㄨㄥ;冒:ㄇㄠ4;冰:ㄅㄧㄥ;冷:ㄌㄥ3;別:ㄅㄧㄝ2;利:ㄌㄧ4;削:ㄒㄩㄝ;劇:ㄐㄩ4;化:ㄏㄨㄚ4;區:ㄑㄩ;升:ㄕㄥ;卡:ㄎㄚ3;危:ㄨㄟ;去:ㄑㄩ4;取:ㄑㄩ3;叮:ㄉㄧㄥ;合:ㄏㄜ2;否:ㄈㄡ3;吹:ㄔㄨㄟ;命:ㄇㄧㄥ4;固:ㄍㄨ4;圖:ㄊㄨ2;地:ㄉㄧ4;型:ㄒㄧㄥ2;域:ㄩ4;堅:ㄐㄧㄢ;填:ㄊㄧㄢ2;壞:ㄏㄨㄞ4;夜:ㄧㄝ4;天:ㄊㄧㄢ;孔:ㄎㄨㄥ3;存:ㄘㄨㄣ2;安:ㄢ;害:ㄏㄞ4;富:ㄈㄨ4;寒:ㄏㄢ2;尋:ㄒㄩㄣ2;小:ㄒㄧㄠ3;尖:ㄐㄧㄢ;尚:ㄕㄤ4;屋:ㄨ;岸:ㄢ4;島:ㄉㄠ3;帶:ㄉㄞ4;度:ㄉㄨ4;建:ㄐㄧㄢ4;很:ㄏㄣ3;徑:ㄐㄧㄥ4;急:ㄐㄧ2;情:ㄑㄧㄥ2;打:ㄉㄚ3;扣:ㄎㄡ4;找:ㄓㄠ3;拾:ㄕ2;捉:ㄓㄨㄛ;捕:ㄅㄨ3;採:ㄘㄞ3;探:ㄊㄢ4;描:ㄇㄧㄠ2;損:ㄙㄨㄣ3;搭:ㄉㄚ;摘:ㄓㄞ;撈:ㄌㄠ;撐:ㄔㄥ;撿:ㄐㄧㄢ3;擊:ㄐㄧ;收:ㄕㄡ;效:ㄒㄧㄠ4;救:ㄐㄧㄡ4;料:ㄌㄧㄠ4;於:ㄩ2;易:ㄧ4;晚:ㄨㄢ3;晴:ㄑㄧㄥ2;暴:ㄅㄠ4;朗:ㄌㄤ3;木:ㄇㄨ4;未:ㄨㄟ4;材:ㄘㄞ2;東:ㄉㄨㄥ;林:ㄌㄧㄣ2;枝:ㄓ;條:ㄊㄧㄠ2;棚:ㄆㄥ2;森:ㄙㄣ;標:ㄅㄧㄠ;樹:ㄕㄨ4;殊:ㄕㄨ;毒:ㄉㄨ2;氣:ㄑㄧ4;求:ㄑㄧㄡ2;沖:ㄔㄨㄥ;沙:ㄕㄚ;沿:ㄧㄢ2;活:ㄏㄨㄛ2;浪:ㄌㄤ4;海:ㄏㄞ3;淋:ㄌㄧㄣ2;深:ㄕㄣ;測:ㄘㄜ4;源:ㄩㄢ2;準:ㄓㄨㄣ3;溫:ㄨㄣ;漂:ㄆㄧㄠ;漫:ㄇㄢ4;潮:ㄔㄠ2;濕:ㄕ;濱:ㄅㄧㄣ;灘:ㄊㄢ;為:ㄨㄟ2;烈:ㄌㄧㄝ4;熬:ㄠ2;燃:ㄖㄢ2;營:ㄧㄥ2;片:ㄆㄧㄢ4;物:ㄨ4;特:ㄊㄜ4;猛:ㄇㄥ3;獸:ㄕㄡ4;由:ㄧㄡ2;留:ㄌㄧㄡ2;略:ㄌㄩㄝ4;發:ㄈㄚ;知:ㄓ;砍:ㄎㄢ3;符:ㄈㄨ2;策:ㄘㄜ4;算:ㄙㄨㄢ4;篝:ㄍㄡ;簡:ㄐㄧㄢ3;糧:ㄌㄧㄤ2;級:ㄐㄧ2;索:ㄙㄨㄛ3;緊:ㄐㄧㄣ3;緣:ㄩㄢ2;編:ㄅㄧㄢ;群:ㄑㄩㄣ2;腐:ㄈㄨ3;與:ㄩ3;若:ㄖㄨㄛ4;草:ㄘㄠ3;著:0ㄓㄜ;藻:ㄗㄠ3;處:ㄔㄨ4;蛋:ㄉㄢ4;蟲:ㄔㄨㄥ2;衝:ㄔㄨㄥ;衡:ㄏㄥ2;裡:ㄌㄧ3;製:ㄓ4;襲:ㄒㄧ2;西:ㄒㄧ;訊:ㄒㄩㄣ4;記:ㄐㄧ4;許:ㄒㄩ3;試:ㄕ4;變:ㄅㄧㄢ4;豐:ㄈㄥ;豬:ㄓㄨ;貝:ㄅㄟ4;負:ㄈㄨ4;資:ㄗ;足:ㄗㄨ2;路:ㄌㄨ4;輯:ㄐㄧ2;述:ㄕㄨ4;造:ㄗㄠ4;遜:ㄒㄩㄣ4;避:ㄅㄧ4;邊:ㄅㄧㄢ;野:ㄧㄝ3;量:ㄌㄧㄤ4;銷:ㄒㄧㄠ;長:ㄔㄤ2;降:ㄐㄧㄤ4;險:ㄒㄧㄢ3;集:ㄐㄧ2;難:ㄋㄢ2;雨:ㄩ3;靜:ㄐㄧㄥ4;靠:ㄎㄠ4;頭:ㄊㄡ2;類:ㄌㄟ4;風:ㄈㄥ;食:ㄕ2;香:ㄒㄧㄤ;高:ㄍㄠ;魚:ㄩ2;魯:ㄌㄨ3;鳥:ㄋㄧㄠ3;木頭:ㄇㄨ4 0ㄊㄡ;避難:ㄅㄧ4 ㄋㄢ4;部分:ㄅㄨ4 ㄈㄣ4;網:ㄨㄤ3;站:ㄓㄢ4;檢:ㄐㄧㄢ3;或:ㄏㄨㄛ4;骰子:ㄊㄡ2 0ㄗ;梯子:ㄊㄧ 0ㄗ;學生:ㄒㄩㄝ2 ㄕㄥ;老師:ㄌㄠ3 ㄕ;身分:ㄕㄣ ㄈㄣ4;切換:ㄑㄧㄝ ㄏㄨㄢ4;還原:ㄏㄨㄢ2 ㄩㄢ2;重新:ㄔㄨㄥ2 ㄒㄧㄣ;每行:ㄇㄟ3 ㄏㄤ2;排行:ㄆㄞ2 ㄏㄤ2;往回數:ㄨㄤ3 ㄏㄨㄟ2 ㄕㄨ3".split(";").forEach(function(e){var i=e.indexOf(":");if(i<1)return;var k=e.slice(0,i),v=e.slice(i+1).split(" ").map(zyFix);if(k.length>1){ZW[k]=v;ZMAX=Math.max(ZMAX,k.length)}else ZC[k]=v[0]});
 function zyChar(c,sy){var s=document.createElement("span");s.className="zy";
-  s.innerHTML='<span class="zc">'+c+'</span><span class="zb"><span class="zs">'+(sy[0]?'<i class="zq">'+sy[0]+'</i>':"")+Array.from(sy[1]).map(function(x){return"<i>"+x+"</i>"}).join("")+(sy[2]?'<span class="zt">'+sy[2]+'</span>':"")+'</span></span>';return s}
+  s.innerHTML='<span class="zc">'+c+'</span>'+(sy?'<span class="zb"><span class="zs">'+(sy[0]?'<i class="zq">'+sy[0]+'</i>':"")+Array.from(sy[1]).map(function(x){return"<i>"+x+"</i>"}).join("")+(sy[2]?'<span class="zt">'+sy[2]+'</span>':"")+'</span></span>':"");return s}
 function zyNode(tn){var t=tn.nodeValue;if(!/[\u4e00-\u9fff]/.test(t))return;var f=document.createDocumentFragment(),buf="",i=0;
   function flush(){if(buf){f.appendChild(document.createTextNode(buf));buf=""}}
   while(i<t.length){var done=false;
     for(var L=Math.min(ZMAX,t.length-i);L>=2&&!done;L--){var w=ZW[t.substr(i,L)];if(w){flush();for(var j=0;j<L;j++)f.appendChild(zyChar(t.charAt(i+j),w[j]));i+=L;done=true}}
     if(done)continue;
-    var c=t.charAt(i);if(ZC[c]){flush();f.appendChild(zyChar(c,ZC[c]))}else buf+=c;i++}
+    var c=t.charAt(i);if(ZC[c]){flush();f.appendChild(zyChar(c,ZC[c]))}else if(/[\u4e00-\u9fff]/.test(c)){flush();f.appendChild(zyChar(c,null))}else buf+=c;i++}
   flush();tn.parentNode.replaceChild(f,tn)}
 var ZSK="svg,textarea,input,script,style,.q,.opts,.mem,.item,.pill,.nz,.zy,.sbm,#tn,#sn_log";
 function zyRun(){if(!zon)return;var w=document.createTreeWalker(app,NodeFilter.SHOW_TEXT),a=[],n;while((n=w.nextNode()))a.push(n);
