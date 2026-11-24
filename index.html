@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f08a24">
+<title>學習遊戲平台</title>
+<style>
+:root{--bg:#fff8ec;--card:#fff;--ink:#2b2b2b;--mute:#777;--pri:#f08a24;--ok:#2e9e5b;--bad:#d9453d;--line:#e8dcc6;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1a15;--card:#2a261f;--ink:#f3ece0;--mute:#a99f8e;--pri:#f5a34a;--ok:#4cc17f;--bad:#f06a62;--line:#3d372c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1d1a15;--card:#2a261f;--ink:#f3ece0;--mute:#a99f8e;--pri:#f5a34a;--ok:#4cc17f;--bad:#f06a62;--line:#3d372c;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;font-size:18px;min-height:100vh}
+#app{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:28px;margin:8px 0 4px}h2{font-size:22px;margin:8px 0}
+.sub{color:var(--mute);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:16px}
+button{font:inherit;cursor:pointer;border:0;border-radius:14px;padding:12px 18px;background:var(--pri);color:#fff;font-weight:700;min-height:48px}
+button.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+button:disabled{opacity:.45}
+.game{text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);padding:18px}
+.game b{display:block;font-size:22px;margin-bottom:4px}.game span{color:var(--mute);font-size:15px;font-weight:400}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:10px}.top .sp{flex:1}
+.q{font-size:44px;text-align:center;margin:18px 0;font-weight:700;word-break:break-all}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opts button{background:var(--card);color:var(--ink);border:3px solid var(--line);font-size:32px;padding:18px 8px;min-height:84px}
+.opts button.ok{border-color:var(--ok);background:var(--ok);color:#fff}.opts button.bad{border-color:var(--bad);background:var(--bad);color:#fff}
+.mem{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.mc{aspect-ratio:3/4;border-radius:14px;border:3px solid var(--line);background:var(--pri);color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;padding:4px;text-align:center;word-break:break-all}
+.mc.up{background:var(--card);color:var(--ink)}.mc.done{background:var(--ok);color:#fff;border-color:var(--ok)}
+input,textarea{font:inherit;width:100%;padding:12px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.row{display:flex;gap:8px;margin:8px 0}.row>*{flex:1}
+.item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}.item span{flex:1}
+.item button{min-height:36px;padding:4px 12px}
+.big{font-size:56px;text-align:center;font-weight:800;color:var(--pri);margin:8px 0;letter-spacing:6px}
+.pill{display:inline-block;padding:4px 12px;border-radius:99px;background:var(--line);margin:3px;font-size:16px}
+.msg{text-align:center;color:var(--mute);margin:10px 0}
+.sb{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:10px}.sc{aspect-ratio:1;background:var(--card);border:2px solid var(--line);border-radius:10px;font-size:12px;padding:2px;text-align:center;overflow:hidden;line-height:1.2}.sc.l{border-color:var(--ok)}.sc.s{border-color:var(--bad)}.sc .tk{font-size:18px;display:block}
+table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px solid var(--line)}td:last-child{text-align:right;font-weight:800}
+:root{--c1:#fdf3d6;--c2:#e8f1e4}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--c1:#3a3626;--c2:#243229}}:root[data-theme="dark"]{--c1:#3a3626;--c2:#243229}
+#sn_names{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:12px 0}
+.nrow{display:flex;align-items:center;gap:8px}
+.dot{width:22px;height:22px;border-radius:50%;flex:none;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+#sn_game{display:none;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:16px}
+@media (max-width:760px){#sn_game{grid-template-columns:1fr}}
+#sn svg{width:100%;height:auto;display:block;border-radius:10px}
+#sn_turn{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+#sn_dice{width:64px;height:64px;border-radius:12px;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;margin:8px 0}
+#sn_players{list-style:none;margin:10px 0;padding:0;max-height:230px;overflow:auto}
+#sn_players li{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;font-size:14px}
+#sn_players li.cur{background:var(--c1);font-weight:700}
+#sn_players .pos{margin-left:auto;color:var(--mute)}
+#sn_log{font-size:13px;color:var(--mute);max-height:150px;overflow:auto;border-top:1px solid var(--line);padding-top:8px}
+#sn_log div{padding:1px 0}
+#sn_win{display:none;margin-top:10px;padding:12px;border-radius:10px;background:var(--c2);font-weight:700;text-align:center}
+.snr{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#sn_end{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:50;align-items:center;justify-content:center;padding:16px}
+#sn_end .box{background:var(--card);color:var(--ink);border-radius:16px;padding:22px;max-width:440px;width:100%;max-height:90vh;overflow:auto;text-align:center}
+#sn_end h2{margin:0 0 6px;font-size:24px}
+#sn_end h2.lose{color:#c0392b;font-size:20px;margin-top:14px}
+#sn_endlist{list-style:none;margin:10px 0;padding:0;text-align:left}
+#sn_endlist li{display:flex;gap:8px;align-items:center;padding:4px 6px;font-size:14px}
+#sn .snr button.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+#sn_q .q{font-size:30px;margin:8px 0}#sn_q .opts button{font-size:26px;min-height:64px;padding:10px 6px}
+#sn_log{max-height:150px}
+.sbg{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(220px,1fr);gap:12px}@media(max-width:760px){.sbg{grid-template-columns:1fr}}
+.sbg svg{width:100%;height:auto;display:block;border-radius:10px}
+.sbl{list-style:none;margin:0;padding:0;max-height:420px;overflow:auto}.sbl li{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;font-size:15px}.sbl li.cur{background:var(--c1);font-weight:700}.sbl .ps{margin-left:auto;color:var(--mute)}
+.sbd{width:22px;height:22px;border-radius:50%;flex:none;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.sbm{color:var(--mute);font-size:15px;min-height:24px}.sbdice{font-size:36px;font-weight:800;margin:0 8px}
+#sqb.card{margin-bottom:10px}#sqb .q{font-size:34px;margin:6px 0}
+.zy{display:inline-flex;align-items:center;margin:0 1px}.zc{font-size:1.45em;line-height:1}
+.zb{display:inline-flex;align-items:center;height:2.9em;font-size:.5em;line-height:.95;font-weight:500;margin-left:1px;opacity:.9}
+.zs{position:relative;display:flex;flex-direction:column;align-items:center;padding-right:.7em}.zs i{font-style:normal;display:block;line-height:.95}.zs i.zq{line-height:.6}
+.zt{position:absolute;right:0;bottom:.4em;line-height:1}
+#sm{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
+.smc{background:var(--card);color:var(--ink);border:3px solid var(--line);border-radius:22px;padding:20px;max-width:560px;width:100%;text-align:center;max-height:90vh;overflow:auto}
+.smc .q{font-size:44px;margin:12px 0}.sbbig{font-size:84px;font-weight:800;line-height:1.1;margin:6px 0}
+.sbw,.sbf{width:min(100%,calc((100vh - 130px)*0.9375));margin-left:auto;margin-right:auto}
+.sbw svg{width:100%;height:auto;display:block;border-radius:10px;border:2px solid var(--line)}
+#app:has(.sbw){max-width:1100px}
+.sbf{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-top:8px}
+.sbleg{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:flex-end;font-size:15px;flex:1}
+.sbn{display:inline-flex;align-items:center;gap:5px}.sbn.cur{font-weight:800}.sbn.cur .sbd{outline:2px solid var(--ink);outline-offset:1px}
+#rb{--bg:#f4efe4;--card:#fffaf0;--ink:#2b2a26;--mut:#7a7466;--bd:#d8cfb8;--ac:#2f6f5e;--bad:#b33a2e;color-scheme:light}
+@media(prefers-color-scheme:dark){#rb{--bg:#1d1f1c;--card:#282b27;--ink:#ece7da;--mut:#a39d8c;--bd:#444840;--ac:#5fb59c;--bad:#e2705f;color-scheme:dark}}
+#rb *{box-sizing:border-box}
+#rb{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,"Noto Sans TC","PingFang TC",sans-serif}
+#rb{max-width:920px;margin:0 auto;padding:14px}
+#rb h1{font-size:22px;margin:4px 0 2px}
+#rb h2{font-size:17px;margin:14px 0 6px}
+#rb .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+#rb .grid{display:grid;gap:10px}
+#rb .g2{grid-template-columns:1fr 1fr}
+#rb .g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:600px){#rb .g2{grid-template-columns:1fr}}
+#rb button{font:inherit;border:1px solid var(--ac);background:var(--ac);color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer}
+#rb button.sec{background:transparent;color:var(--ac)}
+#rb button:disabled{opacity:.45;cursor:not-allowed}
+#rb .stat{text-align:center}
+#rb .stat b{display:block;font-size:22px}
+#rb .mut{color:var(--mut);font-size:13px}
+#rb .act{cursor:pointer;text-align:left;color:var(--ink);background:var(--card);border:2px solid var(--bd);width:100%}
+#rb .act:hover:not(:disabled){border-color:var(--ac)}
+#rb .act.pick{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,var(--card))}
+#rb .warn{color:var(--bad);font-size:13px}
+#rb img.pic{width:100%;height:110px;object-fit:cover;border-radius:8px;margin-bottom:6px;background:var(--bd)}
+#rb .ph{height:60px;border-radius:8px;background:var(--bd);margin-bottom:6px}
+#rb input[type=text],#rb input[type=number],#rb textarea,#rb select{width:100%;font:inherit;padding:4px 6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--ink)}
+#rb .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#rb .row label{font-size:12px;color:var(--mut);display:flex;flex-direction:column;width:64px}
+#rb .log{white-space:pre-wrap;margin:0}
+#rb .hide{display:none}
+#rb .big{font-size:42px;text-align:center}
+#rb .stage{display:grid;gap:10px;margin-top:10px;grid-template-columns:110px 1fr 1fr;grid-template-areas:"hp hp ev" "res scene ev" "act act ev"}
+#rb #heartRow{font-size:22px;letter-spacing:2px;line-height:1.3}
+#rb .side{display:flex;flex-direction:column;gap:10px;justify-content:center;text-align:center}
+#rb .side span{font-size:28px}
+#rb .side b{display:block;font-size:22px}
+#rb .scene{text-align:center}
+#rb .hero{font-size:54px;line-height:1}
+#rb .plat{height:16px;margin:2px auto 8px;width:70%;border-radius:50%;background:repeating-linear-gradient(135deg,var(--ink) 0 2px,var(--card) 2px 6px)}
+#rb .acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:start}
+@media(max-width:700px){#rb .stage{grid-template-columns:1fr 1fr;grid-template-areas:"hp hp" "res scene" "ev ev" "act act"}
+#rb .acts{grid-template-columns:1fr}}
+#rb .beach{position:relative;overflow:hidden;border-radius:14px;margin-top:10px;padding:16px;min-height:520px;color:#1b1b1b;color-scheme:light;
+ background:radial-gradient(ellipse at 12% 6%,#dfe6ef 0 12%,transparent 30%),radial-gradient(ellipse at 70% 10%,#eaf0f3 0 8%,transparent 22%),linear-gradient(#e4edf1,#f4f1bd 65%,#f3e9a6);
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"hud evt" "acts evt" "next evt";gap:10px 24px;align-content:start}
+#rb .beach::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;background:#5fa8b5;z-index:0}
+#rb .deco{position:absolute;right:0;bottom:0;width:54%;max-width:460px;z-index:1;pointer-events:none}
+#rb .hud,#rb .evt,#rb .acts,#rb .nextwrap{position:relative;z-index:2}
+#rb .hud{grid-area:hud}
+#rb .evt{grid-area:evt;align-self:start}
+#rb .acts{grid-area:acts;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+#rb .nextwrap{grid-area:next}
+#rb .pill{display:inline-block;background:#c8cfdb;border-radius:26px;padding:8px 22px;font-size:30px;font-weight:700;line-height:1.2;margin-bottom:6px}
+#rb .ico{font-size:22px;line-height:1.3;margin:2px 0;word-break:break-all}
+#rb .ico .dim,#rb .beach .dim{opacity:.55;font-size:14px}
+#rb .evt h3{font-size:28px;margin:6px 0 12px}
+#rb .evt .en{font-size:18px;font-weight:700}
+#rb .evt div{margin:2px 0}
+#rb .evt .es{font-size:13px;color:#444}
+#rb .beach .act{background:#c8cfdb;border:2px solid #111;border-radius:22px;min-height:200px;padding:14px;color:#111;display:block}
+#rb .beach .act b{font-size:20px}
+#rb .beach .act .mut{color:#333}
+#rb .beach .act:hover:not(:disabled){border-color:#2f6f5e}
+#rb .beach .act.pick{background:#9fb0cc;opacity:1}
+#rb .beach .act:disabled{opacity:.7}
+#rb .beach .act.pick:disabled{opacity:1}
+@media(max-width:700px){#rb .beach{grid-template-columns:1fr;grid-template-areas:"hud" "evt" "acts" "next";min-height:0;padding-bottom:150px}
+#rb .acts{grid-template-columns:1fr 1fr}
+#rb .deco{width:75%;opacity:.9}}
+#rb .row>*{flex:none}#rb button{min-height:0;font-weight:400}#rb .big{color:inherit;letter-spacing:0;font-weight:400}#rb .pill{margin:0 0 6px}
+#rb .rbtop{margin-bottom:6px}#rb{border-radius:14px}#app:has(#rb){max-width:960px}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script>
+/* ===== 題庫（所有遊戲共用）===== */
+var SEED=[["ㄇㄚ","媽"],["ㄉㄚˋ","大"],["ㄏㄠˇ","好"],["ㄕㄨㄟˇ","水"],["ㄖˋ","日"],["ㄩㄝˋ","月"],["ㄏㄨㄛˇ","火"],["ㄖㄣˊ","人"],["ㄕㄢ","山"],["ㄎㄡˇ","口"]];
+var bank=[];
+function loadBank(){try{var s=localStorage.getItem("bank_v1");if(s){bank=JSON.parse(s)}}catch(e){}
+  if(!bank.length){bank=SEED.map(function(x){return{q:x[0],a:x[1]}})}}
+function saveBank(){try{localStorage.setItem("bank_v1",JSON.stringify(bank))}catch(e){}}
+loadBank();
+
+var $=function(s){return document.querySelector(s)};
+function esc(t){return String(t).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function mk(item){ // 產生 4 選 1：先用題目自訂的錯誤選項，空白的再用其他題的答案補滿
+  var seen={},o=[];seen[item.a]=1;
+  (item.w||[]).forEach(function(w){w=String(w||"").trim();if(w&&!seen[w]&&o.length<3){seen[w]=1;o.push(w)}});
+  shuf(bank.map(function(x){return x.a})).forEach(function(w){if(!seen[w]&&o.length<3){seen[w]=1;o.push(w)}});
+  return{q:item.q,a:item.a,opts:shuf(o.concat([item.a]))}}
+var app=$("#app"),cleanup=null;
+function go(fn,a){if(cleanup){try{cleanup()}catch(e){}cleanup=null}fn(a)}
+function topbar(title){return '<div class="top"><button class="ghost" id="back">← 主畫面</button><div class="sp"></div><b>'+title+'</b></div>'}
+function bindBack(){var b=$("#back");if(b)b.onclick=function(){go(home)}}
+
+/* ===== 身分、統計 ===== */
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}return null}
+var role=ls("role_v1"),sname=ls("name_v1")||"";
+function addStat(g,n,sc,t){var a=[];try{a=JSON.parse(ls("stats_v1")||"[]")}catch(e){}a.push({n:n,g:g,s:sc,t:t,d:Date.now()});if(a.length>1000)a=a.slice(-1000);ls("stats_v1",JSON.stringify(a))}
+function addWrong(n,q,a,c){var w=[];try{w=JSON.parse(ls("wrong_v1")||"[]")}catch(e){}w.push({n:n,q:q,a:a,c:c,d:Date.now()});if(w.length>200)w=w.slice(-200);ls("wrong_v1",JSON.stringify(w))}
+function setRole(r){role=r;ls("role_v1",r)}
+
+/* ===== 首頁（選身分）===== */
+function roleSel(){
+  app.innerHTML='<h1>🎒 學習遊戲平台</h1><p class="sub">請選擇身分</p><div class="grid"><button class="game" id="rt"><b>👩‍🏫 老師</b><span>房間代碼、題庫、分數統計</span></button><button class="game" id="rs"><b>🧒 學生</b><span>玩遊戲</span></button></div>'+
+  '<div class="card" id="nmbox" style="display:none;margin-top:12px"><b>你的名字</b><div style="height:8px"></div><input id="nmi" maxlength="8" placeholder="輸入名字" value="'+esc(sname)+'"><button id="ok" style="width:100%;margin-top:8px">開始</button></div>';
+  $("#rt").onclick=function(){setRole("teacher");go(home)};
+  $("#rs").onclick=function(){$("#nmbox").style.display="";$("#nmi").focus()};
+  $("#ok").onclick=function(){var n=$("#nmi").value.trim();if(!n)return;sname=n;ls("name_v1",n);setRole("student");go(home)};
+}
+function switchBtn(){return '<button class="ghost" id="zt">注音：'+(zon?"開":"關")+'</button><button class="ghost" id="sw">切換身分</button>'}
+function bindSwitch(){$("#sw").onclick=function(){role=null;ls("role_v1","");go(roleSel)};$("#zt").onclick=function(){zon=!zon;ls("zy_v1",zon?"1":"0");go(home)}}
+
+/* ===== 主畫面 ===== */
+function home(){
+  if(!role){roleSel();return}
+  if(role==="teacher"){
+    app.innerHTML='<div class="top"><h1 style="margin:0">👩‍🏫 老師</h1><div class="sp"></div>'+switchBtn()+'</div><p class="sub">題庫共 '+bank.length+' 題・所有遊戲共用</p>'+
+    '<div class="grid"><button class="game" id="th"><b>🏠 房間代碼</b><span>開房間，讓學生用房號加入（選擇題搶答、蛇棋）</span></button>'+
+    '<button class="game" id="tb"><b>📚 題庫</b><span>新增、刪除、匯入題目</span></button>'+
+    '<button class="game" id="ts"><b>📊 分數統計</b><span>每位學生的成績紀錄</span></button></div>';
+    bindSwitch();$("#th").onclick=function(){go(host)};$("#tb").onclick=function(){go(bankEd)};$("#ts").onclick=function(){go(statsView)};
+    return;
+  }
+  app.innerHTML='<div class="top"><h1 style="margin:0">🧒 '+nz(sname)+'</h1><div class="sp"></div>'+switchBtn()+'</div><h2>遊戲</h2><div class="grid">'+
+  '<button class="game" id="g1"><b>🎯 選擇題挑戰</b><span>看題目，選出正確答案</span></button>'+
+  '<button class="game" id="g2"><b>🃏 翻牌配對</b><span>把題目和答案配成一對</span></button>'+
+  '<button class="game" id="g4"><b>🏝️ 魯濱遜漂流記</b><span>單人卡牌生存，活過 14 回合</span></button>'+
+  '<button class="game" id="gj"><b>🙋 多人連線</b><span>輸入老師的房號加入（選擇題搶答、蛇棋）</span></button></div>';
+  bindSwitch();
+  $("#g1").onclick=function(){go(quiz)};$("#g2").onclick=function(){go(memory)};$("#g4").onclick=function(){go(robinson)};$("#gj").onclick=function(){go(join)};
+}
+
+/* ===== 分數統計（老師）===== */
+function statsView(){
+  var a=[];try{a=JSON.parse(ls("stats_v1")||"[]")}catch(e){}
+  var m={};a.forEach(function(r){var o=m[r.n]||(m[r.n]={n:r.n,p:0,qs:0,qt:0,sw:0,mp:0});o.p++;
+    if(r.g==="quiz"){o.qs+=r.s;o.qt+=r.t}else if(r.g==="snake")o.sw+=r.s;else if(r.g==="memory")o.mp+=r.s});
+  var rows=Object.keys(m).map(function(k){return m[k]}).sort(function(x,y){return y.qs-x.qs});
+  var wl=[];try{wl=JSON.parse(ls("wrong_v1")||"[]")}catch(e){}wl=wl.slice(-20).reverse();
+  app.innerHTML=topbar("📊 分數統計")+'<div class="card">'+(rows.length?'<table><tr><td><b>名字</b></td><td><b>選擇題</b></td><td><b>蛇棋勝</b></td><td><b>翻牌</b></td></tr>'+
+    rows.map(function(o){return '<tr><td>'+nz(o.n)+'</td><td style="text-align:left;font-weight:400">'+o.qs+' / '+o.qt+(o.qt?'（'+Math.round(o.qs/o.qt*100)+'%）':'')+'</td><td style="text-align:left;font-weight:400">'+o.sw+'</td><td style="text-align:left;font-weight:400">'+o.mp+'</td></tr>'}).join("")+'</table>':'<p class="msg">還沒有紀錄。開一場連線遊戲就會出現。</p>')+'</div>'+
+    '<p class="msg" style="font-size:14px">只統計這台平板上的紀錄（你開的連線遊戲＋本機遊戲）。</p>'+
+    '<div class="card" style="margin-top:12px"><b>錯題紀錄（最新在前）</b>'+(wl.length?wl.map(function(w){return '<div style="padding:5px 0;border-bottom:1px solid var(--line)">'+nz(w.n)+'：'+nz(w.q)+' → 選了 '+nz(w.c)+'，正確答案 '+nz(w.a)+'</div>'}).join(""):'<p class="msg">還沒有錯題。</p>')+'</div>'+((rows.length||wl.length)?'<div class="row" style="margin-top:12px"><button class="ghost" id="clr">清除全部紀錄</button></div>':'');
+  bindBack();var c=$("#clr");if(c)c.onclick=function(){if(confirm("要清除全部紀錄嗎？")){ls("stats_v1","[]");ls("wrong_v1","[]");statsView()}};
+}
+
+/* ===== 題庫管理 ===== */
+function bankEd(){
+  function draw(){
+    app.innerHTML=topbar("📚 題庫管理")+
+    '<div class="card"><div class="row"><input id="nq" placeholder="題目（例：ㄇㄚ）"><input id="na" placeholder="答案（例：媽）"></div><p class="sub" style="font-size:15px;margin:4px 0">錯誤選項（可空白，空白會自動用其他題的答案補成 4 選 1）</p><div class="row"><input id="nw1" placeholder="錯誤選項 1"><input id="nw2" placeholder="錯誤選項 2"><input id="nw3" placeholder="錯誤選項 3"></div><button id="add" style="width:100%">＋ 新增</button></div>'+
+    '<div class="card" style="margin-top:12px"><b>批次匯入</b><p class="sub" style="font-size:15px;margin:4px 0">每行一題：題目,答案,錯誤選項1,錯誤選項2,錯誤選項3（後三欄可空白）</p><textarea id="bulk" rows="3"></textarea><button id="imp" style="margin-top:8px">匯入</button> <button class="ghost" id="rst">還原預設題庫</button></div>'+
+    '<div class="card" style="margin-top:12px"><b>目前題目（'+bank.length+'）</b>'+bank.map(function(b,i){return '<div class="item"><span>'+esc(b.q)+' → '+esc(b.a)+((b.w&&b.w.some(function(x){return x}))?'（'+esc(b.w.filter(function(x){return x}).join('、'))+'）':'')+'</span><button class="ghost" data-i="'+i+'">刪除</button></div>'}).join("")+'</div>';
+    bindBack();
+    $("#add").onclick=function(){var q=$("#nq").value.trim(),a=$("#na").value.trim();if(q&&a){var w=[$("#nw1").value,$("#nw2").value,$("#nw3").value].map(function(x){return x.trim()}),it={q:q,a:a};if(w.some(function(x){return x}))it.w=w;bank.push(it);saveBank();draw()}};
+    $("#imp").onclick=function(){$("#bulk").value.split(/\n/).forEach(function(l){var p=l.split(/[,，\t]/);if(p.length>=2&&p[0].trim()&&p[1].trim()){var it={q:p[0].trim(),a:p[1].trim()},w=p.slice(2,5).map(function(x){return x.trim()});if(w.some(function(x){return x}))it.w=w;bank.push(it)}});saveBank();draw()};
+    $("#rst").onclick=function(){if(confirm("要還原成預設題庫嗎？")){bank=SEED.map(function(x){return{q:x[0],a:x[1]}});saveBank();draw()}};
+    app.querySelectorAll("[data-i]").forEach(function(b){b.onclick=function(){bank.splice(+b.dataset.i,1);saveBank();draw()}});
+  }
+  draw();
+}
+
+/* ===== 單人：選擇題 ===== */
+function quiz(){
+  if(bank.length<4){app.innerHTML=topbar("🎯")+'<p class="msg">題庫至少要 4 題才能玩。</p>';bindBack();return}
+  var qs=shuf(bank).slice(0,10).map(mk),i=0,score=0,lock=false;
+  function show(){
+    if(i>=qs.length){addStat("quiz",sname||"本機",score,qs.length);app.innerHTML=topbar("🎯 結果")+'<div class="big">'+score+' / '+qs.length+'</div><p class="msg">'+(score===qs.length?"太棒了！全對！🎉":"繼續加油！")+'</p><div class="row"><button id="again">再玩一次</button></div>';bindBack();$("#again").onclick=function(){go(quiz)};return}
+    var q=qs[i];lock=false;
+    app.innerHTML=topbar("🎯 第 "+(i+1)+" / "+qs.length+" 題・得分 "+score)+'<div class="q">'+esc(q.q)+'</div><div class="opts">'+q.opts.map(function(o){return '<button data-o="'+esc(o)+'">'+esc(o)+'</button>'}).join("")+'</div>';
+    bindBack();
+    app.querySelectorAll("[data-o]").forEach(function(b){b.onclick=function(){if(lock)return;lock=true;var ok=b.dataset.o===q.a;if(ok)score++;b.classList.add(ok?"ok":"bad");if(!ok)app.querySelectorAll("[data-o]").forEach(function(x){if(x.dataset.o===q.a)x.classList.add("ok")});setTimeout(function(){i++;show()},900)}});
+  }
+  show();
+}
+
+/* ===== 單人：翻牌配對 ===== */
+function memory(){
+  if(bank.length<2){app.innerHTML=topbar("🃏")+'<p class="msg">題庫至少要 2 題。</p>';bindBack();return}
+  var pick=shuf(bank).slice(0,6),cards=[];
+  pick.forEach(function(p,k){cards.push({k:k,t:p.q});cards.push({k:k,t:p.a})});
+  cards=shuf(cards);var open=[],found=0,moves=0,busy=false;
+  function draw(){
+    app.innerHTML=topbar("🃏 翻牌配對・"+moves+" 步")+'<div class="mem">'+cards.map(function(c,i){var cl=c.done?"mc done":(open.indexOf(i)>=0?"mc up":"mc");return '<button class="'+cl+'" data-i="'+i+'">'+((c.done||open.indexOf(i)>=0)?esc(c.t):"？")+'</button>'}).join("")+'</div>'+(found===pick.length?'<p class="msg">🎉 全部配對成功！</p><div class="row"><button id="again">再玩一次</button></div>':"");
+    bindBack();var a=$("#again");if(a)a.onclick=function(){go(memory)};
+    app.querySelectorAll("[data-i]").forEach(function(b){b.onclick=function(){var i=+b.dataset.i;if(busy||cards[i].done||open.indexOf(i)>=0)return;open.push(i);draw();
+      if(open.length===2){moves++;busy=true;var x=cards[open[0]],y=cards[open[1]];setTimeout(function(){if(x.k===y.k&&x.t!==y.t||(x.k===y.k)){x.done=y.done=true;found++;if(found===pick.length)addStat("memory",sname||"本機",1,1)}open=[];busy=false;draw()},900)}}});
+  }
+  draw();
+}
+
+/* ===== 蛇棋棋盤（單機與多人連線共用）===== */
+var SB={C:["#e6194b","#3cb44b","#4363d8","#f58231","#911eb4","#0aa6b8","#d2308f","#7a9a01","#9a6324","#808000","#000075","#e6a700","#5a5a5a","#e8607a"],
+ SK:{16:6,47:26,49:11,56:53,62:19,64:60,87:24,93:73,95:75,98:78},LD:{1:38,4:14,9:31,21:42,28:84,36:44,51:67,71:91,80:100},NS:"http://www.w3.org/2000/svg",mk:"",mkey:""};
+SB.xy=function(n){var r=Math.floor((n-1)/10),c=(n-1)%10;if(r%2)c=9-c;return{x:c*60+30,y:(9-r)*60+30}};
+SB.el=function(tag,at,par){var e=document.createElementNS(SB.NS,tag);for(var k in at)e.setAttribute(k,at[k]);if(par)par.appendChild(e);return e};
+SB.draw=function(s){
+  s.innerHTML="";var el=SB.el,xy=SB.xy;
+  el("rect",{x:0,y:600,width:600,height:40,fill:"var(--c2)"},s);
+  var t=el("text",{x:8,y:625,"font-size":12,fill:"var(--mute)"},s);t.textContent="起點";
+  for(var n=1;n<=100;n++){var p=xy(n);
+    el("rect",{x:p.x-30,y:p.y-30,width:60,height:60,fill:((Math.floor((n-1)/10)+(n-1)%10)%2)?"var(--c1)":"var(--c2)",stroke:"var(--line)"},s);
+    var tx=el("text",{x:p.x-27,y:p.y-18,"font-size":11,fill:"var(--mute)"},s);tx.textContent=n}
+  for(var a in SB.LD){var A=xy(+a),B=xy(SB.LD[a]);
+    var dx=B.x-A.x,dy=B.y-A.y,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L,px=-uy*7,py=ux*7,st="#a0702d";
+    el("line",{x1:A.x+px,y1:A.y+py,x2:B.x+px,y2:B.y+py,stroke:st,"stroke-width":4,"stroke-linecap":"round"},s);
+    el("line",{x1:A.x-px,y1:A.y-py,x2:B.x-px,y2:B.y-py,stroke:st,"stroke-width":4,"stroke-linecap":"round"},s);
+    for(var d=14;d<L-6;d+=18)el("line",{x1:A.x+ux*d+px,y1:A.y+uy*d+py,x2:A.x+ux*d-px,y2:A.y+uy*d-py,stroke:st,"stroke-width":3},s)}
+  var k=0;
+  for(var a2 in SB.SK){var A2=xy(+a2),B2=xy(SB.SK[a2]);
+    var dx2=B2.x-A2.x,dy2=B2.y-A2.y,L2=Math.hypot(dx2,dy2),nx=-dy2/L2,ny=dx2/L2,w=Math.min(34,L2*0.28),sg=(k%2)?1:-1;
+    var col=["#2e9e55","#c0392b","#8e44ad","#d68910","#1f78b4"][k%5];
+    el("path",{d:"M"+A2.x+" "+A2.y+" C"+(A2.x+dx2*0.25+nx*w*sg)+" "+(A2.y+dy2*0.25+ny*w*sg)+" "+(A2.x+dx2*0.75-nx*w*sg)+" "+(A2.y+dy2*0.75-ny*w*sg)+" "+B2.x+" "+B2.y,fill:"none",stroke:col,"stroke-width":8,"stroke-linecap":"round",opacity:.85},s);
+    el("circle",{cx:A2.x,cy:A2.y,r:9,fill:col},s);el("circle",{cx:A2.x-3,cy:A2.y-2,r:2,fill:"#fff"},s);el("circle",{cx:A2.x+3,cy:A2.y-2,r:2,fill:"#fff"},s);k++}
+  var f=el("text",{x:xy(100).x,y:xy(100).y+10,"text-anchor":"middle","font-size":22},s);f.textContent="🏁";
+  return el("g",{},s)};
+SB.tokens=function(g,ps,cur,over){
+  g.innerHTML="";
+  ps.forEach(function(pl,i){var p;
+    if(pl.pos===0)p={x:18+i*40,y:620};else{var q=SB.xy(pl.pos);p={x:q.x+(i%4-1.5)*13+4,y:q.y+(Math.floor(i/4)-1.5)*11+8}}
+    var on=i===cur&&!over;
+    SB.el("circle",{cx:p.x,cy:p.y,r:on?8.5:7.5,fill:SB.C[i%14],stroke:on?"var(--ink)":"#fff","stroke-width":on?2:1},g);
+    var t=SB.el("text",{x:p.x,y:p.y+3.5,"text-anchor":"middle","font-size":9,"font-weight":700,fill:"#fff"},g);t.textContent=i+1})};
+SB.show=function(g,ps,cur,over){
+  SB.tokens(g,ps,cur,over);
+  $("#sbl").innerHTML=ps.map(function(pl,i){return '<span class="sbn'+((i===cur&&!over)?" cur":"")+'"><span class="sbd" style="background:'+SB.C[i%14]+'">'+(i+1)+'</span>'+nz(pl.name)+'</span>'}).join("")};
+SB.ui=function(extra){return '<div id="sm"></div><div class="sbw"><svg id="sv" viewBox="0 0 600 640" role="img" aria-label="蛇棋棋盤"></svg></div><div class="sbf"><div>'+(extra||"")+'</div><div class="sbleg" id="sbl"></div></div>'};
+SB.modal=function(h,kind){var m=document.getElementById("sm");if(!m){if(!h)return;m=document.createElement("div");m.id="sm";app.appendChild(m)}
+  if(!h){m.style.display="none";m.innerHTML="";SB.mk="";return}
+  m.innerHTML='<div class="smc">'+h+'</div>';m.style.display="flex";SB.mk=kind||""};
+SB.diceH=function(name,d){return '<div style="font-size:20px">'+nz(name)+' 擲出</div><div class="sbbig">🎲 '+d+'</div><div class="sbm" id="sdm"></div>'};
+SB.winH=function(name,btn){return '<div class="sbbig">🏆</div><div style="font-size:30px;font-weight:700;margin:6px 0">'+nz(name)+' 獲勝！</div>'+(btn?'<button id="ag">再玩一局</button>':"")};
+SB.qH=function(who,q,dis){return '<b>'+(dis?'輪到 '+nz(who)+' 作答':nz(who)+'：答對才能擲骰子')+'</b><div class="q">'+esc(q.q)+'</div><div class="opts">'+q.opts.map(function(o){return '<button '+(dis?'disabled':'data-o="'+esc(o)+'"')+'>'+esc(o)+'</button>'}).join("")+'</div>'};
+SB.res=function(ok,a){return '<div style="font-size:32px;font-weight:700;margin:8px 0">'+(ok?"✅ 答對了！":"❌ 答錯了")+'</div>'+(ok?"":'<div>答案：'+nz(a)+'</div>')};
+SB.wrongH=function(name,q,c,a){return '<div style="font-size:30px;font-weight:700;margin:6px 0">❌ '+nz(name)+' 答錯了</div><div class="q" style="font-size:36px">'+esc(q)+'</div><div>選了：'+nz(c)+'</div><div style="margin-bottom:10px">正確答案：'+nz(a)+'</div><div class="row"><button id="wk">繼續</button></div>'};
+SB.move=async function(pl,dd,say){ // 走棋動畫；回傳是否抵達 100
+  var sl=function(ms){return new Promise(function(r){setTimeout(r,ms)})},target=pl.pos+dd;
+  if(target>100){target=200-target;say("超過 100，折返");while(pl.pos<100){pl.pos++;say();await sl(140)}while(pl.pos>target){pl.pos--;say();await sl(140)}}
+  else{while(pl.pos<target){pl.pos++;say("前進到 "+pl.pos);await sl(140)}}
+  if(SB.LD[pl.pos]){say("爬梯子到 "+SB.LD[pl.pos]+" 🪜");await sl(350);pl.pos=SB.LD[pl.pos];say()}
+  else if(SB.SK[pl.pos]){say("被蛇咬，滑到 "+SB.SK[pl.pos]+" 🐍");await sl(350);pl.pos=SB.SK[pl.pos];say()}
+  return pl.pos===100};
+
+/* ===== 魯濱遜漂流記（單人卡牌生存，匯入自獨立作品）===== */
+function robinson(){
+  app.innerHTML=`<div id="rb"><div class="rbtop"><button class="sec" id="rb_home">← 主畫面</button></div>
+<h1>🏝️ 魯濱遜漂流記</h1><div class="mut">單人卡牌生存 · 14 回合 · 活到最後就是勝利</div>
+
+<section id="rb_setup">
+ <div class="card" style="margin-top:10px">
+  <div class="row"><button id="rb_btnStart">開始遊戲</button><button class="sec" id="rb_btnSim">平衡測試(全部 16,384 條路徑)</button><button class="sec" id="rb_btnReset">還原預設卡牌</button></div>
+  <p id="rb_simOut" class="mut"></p>
+  <p class="mut">遊戲開始前可編輯所有卡牌的標題、描述、圖片與效果。圖片請自行上傳。效果數值:正數為獲得,負數為損失。建造卡的「建造」欄請填等級(1~3),木頭填負的消耗量。</p>
+ </div>
+ <div id="rb_editor"></div>
+</section>
+
+<section id="rb_game" class="hide"><div class="beach">
+<svg class="deco" viewBox="0 0 400 260" aria-hidden="true">
+<path d="M40 260 C110 205 220 150 330 140 C370 137 395 148 400 158 L400 260Z" fill="#f0d9a0"/>
+<path d="M332 150 C338 112 326 82 342 42" stroke="#6b4a2b" stroke-width="8" fill="none" stroke-linecap="round"/>
+<g fill="#3f8f3f"><path d="M342 42 C305 18 272 32 252 62 C285 46 312 44 342 42Z"/><path d="M342 42 C330 8 296 2 272 14 C300 16 322 28 342 42Z"/><path d="M342 42 C372 14 400 24 408 54 C384 38 364 38 342 42Z"/><path d="M342 42 C375 40 392 66 388 90 C378 66 362 52 342 42Z"/></g>
+
+</svg>
+ <div class="hud"><div class="pill">第 <span id="rb_sRound"></span> 天</div>
+  <div class="ico" id="rb_heartRow"></div><div class="ico" id="rb_foodRow"></div><div class="ico" id="rb_woodRow"></div><div class="ico" id="rb_tentRow"></div><div class="mut" id="rb_sShelter" style="color:#444"></div></div>
+ <div class="evt"><h3>劇情卡</h3><div id="rb_evBox"></div></div>
+ <div class="acts" id="rb_actBox"></div>
+ <div class="nextwrap"><button id="rb_btnNext" class="hide">下一回合</button></div>
+</div></section>
+
+<section id="rb_end" class="hide"><div class="card" style="margin-top:14px"><div class="big" id="rb_endIcon"></div><h2 id="rb_endTitle" style="text-align:center"></h2><p id="rb_endText" style="text-align:center"></p><pre class="log" id="rb_endLog"></pre><div class="row" style="justify-content:center;margin-top:10px"><button id="rb_btnRestart">重新開始</button><button class="sec" id="rb_btnBack">回到編輯畫面</button></div></div></section>
+</div>`;
+  document.getElementById("rb_home").onclick=function(){go(home)};
+const CONFIG={maxHp:10,rounds:14,shelter:[{name:"簡易棚屋",uses:1,cost:3},{name:"木製小屋",uses:2,cost:4},{name:"堅固木屋",uses:3,cost:5}]};
+const A=(title,desc,e,build)=>({title,desc,food:e.f||0,wood:e.w||0,hp:e.h||0,build:build||0,img:""});
+const DEFAULT_ACTIONS=[
+[A("海灘採集","在沙灘上撿拾貝類與海藻",{f:2}),A("收集漂流木","沿著海岸撿拾木頭",{w:2})],
+[A("捕魚","用削尖的樹枝捕魚",{f:3}),A("探索海岸","沿著海岸尋找資源",{f:1,w:2})],
+[A("採集野果","在林緣摘取野果",{f:2,w:1}),A("深入森林","森林深處木材豐富,但很危險",{w:3,h:-1})],
+[A("收集木材","砍伐樹木",{w:3}),A("建造簡易棚屋","搭建第一個避難所",{w:-3},1)],
+[A("尋找食物","四處尋找可食用的東西",{f:2}),A("探索木材","尋找可用的木材",{w:3})],
+[A("捕魚","再次出海捕魚",{f:3}),A("森林探索","探索森林",{w:2,h:-1})],
+[A("採集野果","採集野果與香草",{f:2,w:1}),A("升級木製小屋","把棚屋加固為小屋",{w:-4},2)],
+[A("捕捉大型魚","冒險捕捉大魚",{f:3,h:-1}),A("收集木材","砍伐樹木",{w:2})],
+[A("尋找野果","尋找野果",{f:2}),A("探索森林","探索森林",{w:3})],
+[A("冒險探索","深入未知區域",{f:3,h:-2}),A("打撈漂流木","打撈大量漂流木",{w:3})],
+[A("採集食物","採集食物",{f:2,h:-1}),A("升級堅固木屋","建造最終避難所",{w:-5},3)],
+[A("補充食物","補充存糧",{f:3}),A("收集求救材料","收集可燃材料",{w:2})],
+[A("冒險尋找食物","冒險尋找食物",{f:3,h:-1}),A("探索木材","尋找木材",{w:3})],
+[A("緊急採集","緊急採集食物",{f:2,h:-1}),A("準備求救訊號","點燃求救訊號(特殊行動,不增加避難所次數)",{w:-2})]];
+const DEFAULT_EVENTS=[{"title":"風平浪靜","desc":"海面平靜,你在潮間帶找到一些食物。","food":1,"wood":0,"hp":0,"shelter":false,"img":""},{"title":"小雨","desc":"冰冷的雨水淋濕了你。","food":0,"wood":0,"hp":-1,"shelter":true,"img":""},{"title":"海鳥群","desc":"海鳥在岸邊留下許多鳥蛋。","food":2,"wood":0,"hp":0,"shelter":false,"img":""},{"title":"野豬出沒","desc":"野豬衝進營地!","food":0,"wood":0,"hp":-1,"shelter":true,"img":""},{"title":"暴風雨","desc":"暴風雨吹走部分木頭,並造成傷害。","food":0,"wood":-1,"hp":-1,"shelter":true,"img":""},{"title":"寒冷夜晚","desc":"你靠著篝火熬過寒夜,平安無事。","food":0,"wood":0,"hp":0,"shelter":false,"img":""},{"title":"食物腐壞","desc":"高溫讓存糧腐壞了。","food":-1,"wood":0,"hp":0,"shelter":false,"img":""},{"title":"野獸襲擊","desc":"野獸在夜裡襲擊營地。","food":0,"wood":0,"hp":-1,"shelter":true,"img":""},{"title":"海浪沖走","desc":"大浪沖走了一些木頭。","food":0,"wood":-1,"hp":0,"shelter":false,"img":""},{"title":"毒蟲叮咬","desc":"毒蟲無孔不入,避難所也擋不住。","food":0,"wood":0,"hp":-1,"shelter":false,"img":""},{"title":"晴朗的一天","desc":"天氣晴朗,沒有特別的事發生。","food":0,"wood":0,"hp":0,"shelter":false,"img":""},{"title":"漂流木","desc":"潮水帶來大量漂流木。","food":0,"wood":2,"hp":0,"shelter":false,"img":""},{"title":"猛烈暴風雨","desc":"最猛烈的暴風雨來襲!","food":0,"wood":0,"hp":-2,"shelter":true,"img":""},{"title":"最後一夜","desc":"漫長的最後一夜,平安度過。","food":0,"wood":0,"hp":0,"shelter":false,"img":""}];
+function newState(){return{hp:CONFIG.maxHp,food:0,wood:0,lv:0,uses:0,max:0}}
+// 結算一回合,回傳 {s,log,dead}
+function playRound(s,action,event){
+ s={...s};const log=[];
+ // 行動
+ let ok=true;
+ if(action.build){const cost=-action.wood;
+  if(s.lv!==action.build-1){ok=false;log.push(`行動失敗:需先建造 Lv.${action.build-1}(目前 Lv.${s.lv})`)}
+  else if(s.wood<cost){ok=false;log.push(`行動失敗:木頭不足(需要 ${cost},目前 ${s.wood}),未扣除木頭`)}}
+ else if(action.wood<0&&s.wood<-action.wood){ok=false;log.push(`行動失敗:木頭不足(需要 ${-action.wood},目前 ${s.wood}),未扣除木頭`)}
+ if(ok){
+  s.food+=action.food;s.wood+=action.wood;s.hp=Math.min(CONFIG.maxHp,s.hp+action.hp);
+  const p=[];if(action.food)p.push(`${action.food>0?'+':''}${action.food}🍖`);if(action.wood)p.push(`${action.wood>0?'+':''}${action.wood}🪵`);if(action.hp)p.push(`${action.hp>0?'+':''}${action.hp}❤️`);
+  log.push(`行動「${action.title}」:${p.join(' ')||'無變化'}`);
+  if(action.build){const L=CONFIG.shelter[action.build-1];const add=L.uses-s.max;s.lv=action.build;s.max=L.uses;s.uses+=add;log.push(`建造 Lv.${s.lv} ${L.name},避難所 ${s.uses} / ${s.max}`)}
+ }
+ if(s.hp<=0)return{s,log,dead:true};
+ // 事件
+ s.food=Math.max(0,s.food+event.food);s.wood=Math.max(0,s.wood+event.wood);
+ const p=[];if(event.food)p.push(`${event.food>0?'+':''}${event.food}🍖`);if(event.wood)p.push(`${event.wood>0?'+':''}${event.wood}🪵`);
+ let dmg=-event.hp;
+ if(event.hp>0){s.hp=Math.min(CONFIG.maxHp,s.hp+event.hp);p.push(`+${event.hp}❤️`)}
+ else if(dmg>0){let ab=0;
+  if(event.shelter&&s.uses>0){ab=Math.min(dmg,s.uses);s.uses-=ab;log.push(`🏕️ 避難所抵銷 ${ab} ❤️ 傷害(消耗 ${ab} 次,剩餘 ${s.uses} / ${s.max})`)}
+  else if(event.shelter)log.push(`🏕️ 避難所已無使用次數,無法抵銷`);
+  else log.push(`此事件傷害無法由避難所抵銷`);
+  s.hp-=dmg-ab;if(dmg-ab>0)p.push(`-${dmg-ab}❤️`)}
+ log.push(`事件「${event.title}」:${p.join(' ')||'無資源變化'}`);
+ if(s.hp<=0)return{s,log,dead:true};
+ // 食物消耗
+ if(s.food>0){s.food--;log.push(`食物消耗:-1🍖`)}else{s.hp--;log.push(`食物不足:-1❤️(避難所無法抵銷)`)}
+ return{s,log,dead:s.hp<=0};
+}
+function simulate(actions,events){
+ let win=0;const total=2**CONFIG.rounds;
+ (function go(r,s){
+  if(r===CONFIG.rounds){win++;return}
+  for(let i=0;i<2;i++){const o=playRound(s,actions[r][i],events[r]);if(!o.dead)go(r+1,o.s)}
+ })(0,newState());
+ return{win,total,rate:win/total};
+}
+function strategies(actions,events){ // 固定策略結果
+ const run=pick=>{let s=newState();for(let r=0;r<CONFIG.rounds;r++){const o=playRound(s,actions[r][pick(r,s)],events[r]);s=o.s;if(o.dead)return`失敗於第${r+1}回合`}return"勝利"};
+ return{全選A:run(()=>0),全選B:run(()=>1),
+  食物優先:run((r)=>actions[r][0].food>=actions[r][1].food?0:1),
+  木頭優先:run((r)=>actions[r][0].wood>=actions[r][1].wood?0:1),
+  能建就建:run((r,s)=>actions[r][1].build&&s.lv===actions[r][1].build-1&&s.wood>=-actions[r][1].wood?1:(actions[r][0].food>=actions[r][1].food?0:1))};
+}
+
+const $=id=>document.getElementById('rb_'+id)||document.createElement('div');
+const clone=o=>JSON.parse(JSON.stringify(o));
+let actions=clone(DEFAULT_ACTIONS),events=clone(DEFAULT_EVENTS);
+let st,round,locked,fullLog,shLog;
+const eff=c=>{const p=[];if(c.food)p.push((c.food>0?'+':'')+c.food+' 🍖');if(c.wood)p.push((c.wood>0?'+':'')+c.wood+' 🪵');if(c.hp)p.push((c.hp>0?'+':'')+c.hp+' ❤️');if(c.build)p.push('建造 Lv.'+c.build);return p.join('、')||'無資源變化'};
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const pic=c=>c.img?`<img class="pic" src="${c.img}" alt="">`:'';
+
+/* ---------- 編輯畫面 ---------- */
+function numField(o,k,label,min){return `<label>${label}<input type="number" data-k="${k}" value="${o[k]}" ${min!==undefined?`min="${min}"`:''}></label>`}
+function renderEditor(){
+ let h='';
+ for(let r=0;r<CONFIG.rounds;r++){
+  h+=`<h2>第 ${r+1} 回合</h2><div class="grid g2" style="grid-template-columns:repeat(3,1fr)">`;
+  const cards=[['事件卡',events[r],'e',r,0],['行動卡 A',actions[r][0],'a',r,0],['行動卡 B',actions[r][1],'a',r,1]];
+  for(const [lab,c,t,i,j] of cards){
+   h+=`<div class="card" data-t="${t}" data-i="${i}" data-j="${j}"><b>${lab}</b>${pic(c)}
+   <input type="text" data-k="title" value="${esc(c.title)}"><textarea data-k="desc" rows="2">${esc(c.desc)}</textarea>
+   <div class="row">${numField(c,'food','食物 🍖')}${numField(c,'wood','木頭 🪵')}${numField(c,'hp','生命 ❤️')}
+   ${t==='a'?numField(c,'build','建造等級',0):`<label>避難所可抵銷<select data-k="shelter"><option value="0" ${c.shelter?'':'selected'}>否</option><option value="1" ${c.shelter?'selected':''}>是</option></select></label>`}</div>
+   <div class="row" style="margin-top:6px"><input type="file" accept="image/*" data-img style="width:100%;font-size:12px"></div></div>`;
+  }
+  h+='</div>';
+ }
+ $('editor').innerHTML=h;
+}
+$('editor').addEventListener('input',e=>{
+ const box=e.target.closest('.card');if(!box||!e.target.dataset.k)return;
+ const t=box.dataset.t,i=+box.dataset.i,j=+box.dataset.j,c=t==='e'?events[i]:actions[i][j],k=e.target.dataset.k;
+ if(k==='title'||k==='desc')c[k]=e.target.value;
+ else if(k==='shelter')c.shelter=e.target.value==='1';
+ else c[k]=k==='build'?Math.max(0,Math.min(3,Math.trunc(+e.target.value||0))):Math.trunc(+e.target.value||0);
+});
+$('editor').addEventListener('change',e=>{
+ if(!e.target.dataset.img||!e.target.files[0])return;
+ const box=e.target.closest('.card'),t=box.dataset.t,i=+box.dataset.i,j=+box.dataset.j,c=t==='e'?events[i]:actions[i][j];
+ const fr=new FileReader();fr.onload=()=>{c.img=fr.result;renderEditor()};fr.readAsDataURL(e.target.files[0]);
+});
+$('btnReset').onclick=()=>{if(confirm('確定還原預設卡牌?')){actions=clone(DEFAULT_ACTIONS);events=clone(DEFAULT_EVENTS);renderEditor();$('simOut').textContent=''}};
+$('btnSim').onclick=()=>{
+ const r=simulate(actions,events);
+ $('simOut').innerHTML=`勝利路徑 <b>${r.win.toLocaleString()}</b> / ${r.total.toLocaleString()} = <b>${(r.rate*100).toFixed(2)}%</b>(目標約 20%)<br>固定策略:`+Object.entries(strategies(actions,events)).map(([k,v])=>`${k}→${v}`).join(';');
+};
+
+/* ---------- 遊戲流程 ---------- */
+function show(id){['setup','game','end'].forEach(x=>$(x).classList.toggle('hide',x!==id));window.scrollTo(0,0)}
+function startGame(){st=newState();round=0;locked=false;fullLog=[];shLog=[];show('game');renderRound()}
+function shelterText(){
+ if(st.lv===0)return['尚未建造避難所','剩餘使用次數:0 / 0'];
+ return[`Lv.${st.lv} ${CONFIG.shelter[st.lv-1].name}`,`剩餘使用次數:${st.uses} / ${st.max}`];
+}
+function renderStats(){
+ $('sRound').textContent=`${Math.min(round+1,CONFIG.rounds)} / ${CONFIG.rounds}`;
+ $('sHp').textContent=`${Math.max(0,st.hp)} / ${CONFIG.maxHp}`;$('sFood').textContent=st.food;$('sWood').textContent=st.wood;
+ $('heartRow').textContent=Array.from({length:CONFIG.maxHp},(_,i)=>i<Math.max(0,st.hp)?'❤️':'🖤').join('');
+ const [a,b]=shelterText();$('sShelter').textContent=a;$('tentRow').textContent=Array.from({length:st.max},(_,i)=>i<st.uses?'⛺':'⬜').join('');
+}
+function renderRound(){
+ locked=false;renderStats();
+ const ev=events[round];
+ $('evBox').innerHTML=`${pic(ev)}<b>${ev.hp<0&&ev.shelter?'⛺ ':''}${esc(ev.title)}</b><br>${esc(ev.desc)}<br><span class="mut">資源變化:${eff({...ev,build:0})}</span><br><span class="mut">${ev.hp<0?(ev.shelter?'⛺ 生命傷害可由避難所抵銷':'生命傷害無法由避難所抵銷'):'本事件不造成生命傷害'}</span>`;
+ $('actBox').innerHTML='';
+ actions[round].forEach((a,i)=>{
+  const b=document.createElement('button');b.className='act card';
+  let w='';
+  if(a.build){const cost=-a.wood;if(st.lv!==a.build-1)w=`⚠️ 條件不符:需先建造 Lv.${a.build-1}`;else if(st.wood<cost)w=`⚠️ 木頭不足(需要 ${cost})`}
+  else if(a.wood<0&&st.wood<-a.wood)w=`⚠️ 木頭不足(需要 ${-a.wood})`;
+  b.innerHTML=`${pic(a)}<b>${esc(a.title)}</b><br>${esc(a.desc)}<br><span class="mut">${eff(a)}</span>${w?`<br><span class="warn">${w}(若選擇,本回合行動無效)</span>`:''}`;
+  b.onclick=()=>choose(i,b);$('actBox').appendChild(b);
+ });
+ $('btnNext').classList.add('hide');
+}
+function choose(i,btn){
+ if(locked)return;locked=true; // 每回合只結算一次
+ document.querySelectorAll('#rb_actBox button').forEach(b=>{b.disabled=true});btn.classList.add('pick');
+ const o=playRound(st,actions[round][i],events[round]);
+ st=o.s;renderStats();
+ 
+ fullLog.push(`【第 ${round+1} 回合】\n`+o.log.join('\n'));
+ o.log.filter(l=>l.includes('避難所')&&!l.startsWith('建造')).forEach(l=>shLog.push(`第 ${round+1} 回合:${l.replace('🏕️ ','')}`));
+ 
+ if(o.dead){return setTimeout(()=>finish(false),600)}
+ const nb=$('btnNext');nb.classList.remove('hide');
+ nb.textContent=round===CONFIG.rounds-1?'查看結果':'下一回合';
+}
+$('btnNext').onclick=()=>{
+ if(round===CONFIG.rounds-1)return finish(true);
+ round++;renderRound();
+};
+function finish(win){
+ show('end');
+ $('endIcon').textContent=win?'🎉':'💀';
+ $('endTitle').textContent=win?'勝利!你在島上存活下來':'失敗…你沒能撐過去';
+ $('endText').textContent=win?`撐過 14 回合,剩餘生命 ${st.hp},食物 ${st.food},木頭 ${st.wood}。`:`在第 ${round+1} 回合生命降至 0。`;
+ $('endLog').textContent=fullLog.join('\n\n');
+}
+$('btnStart').onclick=startGame;$('btnRestart').onclick=startGame;
+$('btnBack').onclick=()=>{show('setup');renderEditor()};
+
+function renderStats(){
+ $('sRound').textContent=Math.min(round+1,CONFIG.rounds);
+ const rep=(ic,n,lab)=>n>0?ic.repeat(n):`<span class="dim">${ic} 0</span>`;
+ $('heartRow').textContent=Array.from({length:CONFIG.maxHp},(_,i)=>i<Math.max(0,st.hp)?'❤️':'🖤').join('');
+ $('heartRow').title='生命 '+Math.max(0,st.hp)+' / '+CONFIG.maxHp;
+ $('foodRow').innerHTML=rep('🍖',st.food);$('foodRow').title='食物 '+st.food;
+ $('woodRow').innerHTML=rep('🪵',st.wood);$('woodRow').title='木頭 '+st.wood;
+ $('tentRow').innerHTML=st.max?Array.from({length:st.max},(_,i)=>i<st.uses?'⛺':'⬜').join(''):'<span class="dim">⛺ 尚未建造</span>';
+ $('tentRow').title=st.max?`避難所剩餘使用次數 ${st.uses} / ${st.max}`:'尚未建造避難所';
+ $('sShelter').textContent=st.lv?`Lv.${st.lv} ${CONFIG.shelter[st.lv-1].name}`:'';
+}
+function renderRound(){
+ locked=false;renderStats();
+ const ev=events[round];
+ $('evBox').innerHTML=`${pic(ev)}<div class="en">${ev.hp<0&&ev.shelter?'⛺ ':''}${esc(ev.title)}</div><div>${esc(ev.desc)}</div><div>資源變化:${eff({...ev,build:0})}</div><div class="es">${ev.hp<0?(ev.shelter?'⛺ 生命傷害可由避難所抵銷':'生命傷害無法由避難所抵銷'):'本事件不造成生命傷害'}</div>`;
+ $('actBox').innerHTML='';
+ actions[round].forEach((a,i)=>{
+  const b=document.createElement('button');b.className='act';
+  let w='';
+  if(a.build){const cost=-a.wood;if(st.lv!==a.build-1)w=`⚠️ 條件不符:需先建造 Lv.${a.build-1}`;else if(st.wood<cost)w=`⚠️ 木頭不足(需要 ${cost})`}
+  else if(a.wood<0&&st.wood<-a.wood)w=`⚠️ 木頭不足(需要 ${-a.wood})`;
+  b.innerHTML=`${pic(a)}<b>${esc(a.title)}</b><br>${esc(a.desc)}<br><span class="mut">${eff(a)}</span>${w?`<br><span class="warn">${w}(若選擇,本回合行動無效)</span>`:''}`;
+  b.onclick=()=>choose(i,b);$('actBox').appendChild(b);
+ });
+ $('btnNext').classList.add('hide');
+}
+renderEditor();
+}
+
+/* ===== 多人連線（room）===== */
+/* ===== 多人連線：Supabase Realtime（Broadcast + Presence，訪客匿名，不需登入）===== */
+var roomApi=null,myId=(window.crypto&&crypto.randomUUID?crypto.randomUUID():"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
+function getRoom(cb){
+  if(roomApi){cb(roomApi);return}
+  var C=window.GAME_CONFIG||{};
+  if(!C.SUPABASE_URL||!C.SUPABASE_KEY||!window.supabase||!supabase.createClient){cb(null);return}
+  var client;
+  try{client=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},realtime:{params:{eventsPerSecond:30}}})}catch(e){cb(null);return}
+  roomApi={join:function(name){return new Promise(function(res,rej){
+    var ch=client.channel("room-"+name,{config:{broadcast:{self:false,ack:false},presence:{key:myId}}}),
+        handlers={},peerFns=[],ok=false,tm=null;
+    ch.on("broadcast",{event:"m"},function(p){var d=p&&p.payload;if(!d||!d.t)return;(handlers[d.t]||[]).slice().forEach(function(f){try{f({data:d.d,peer:d.f})}catch(e){console.error(e)}})});
+    ch.on("presence",{event:"sync"},function(){
+      var st=ch.presenceState(),peers=[];
+      Object.keys(st).forEach(function(k){var arr=st[k]||[],pr=arr[arr.length-1]||{};peers.push({peer:k,presence:pr,sameTab:k===myId})});
+      peerFns.slice().forEach(function(f){try{f({peers:peers})}catch(e){console.error(e)}})});
+    var room={
+      emit:function(t,d){return ch.send({type:"broadcast",event:"m",payload:{t:t,d:d,f:myId}})},
+      on:function(t,f){(handlers[t]=handlers[t]||[]).push(f);return function(){handlers[t]=(handlers[t]||[]).filter(function(x){return x!==f})}},
+      onPeers:function(f){peerFns.push(f);return function(){peerFns=peerFns.filter(function(x){return x!==f})}},
+      presence:function(o){setTimeout(function(){try{ch.track(o)}catch(e){}},Math.random()*2000)}, // 錯開加入時間，避免多人同時加入超過速率限制
+      leave:function(){try{ch.unsubscribe()}catch(e){}}};
+    tm=setTimeout(function(){if(!ok){try{ch.unsubscribe()}catch(e){}rej(new Error("timeout"))}},10000);
+    ch.subscribe(function(status){
+      if(status==="SUBSCRIBED"&&!ok){ok=true;clearTimeout(tm);res(room)}
+      else if(!ok&&(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED")){clearTimeout(tm);rej(new Error(status))}});
+  })}};
+  cb(roomApi);
+}
+function noRoom(){app.innerHTML=topbar("多人連線")+'<p class="msg">目前無法連線。請確認網路，或請老師檢查網站的連線設定。單人遊戲仍可使用。</p>';bindBack()}
+
+function host(){
+  getRoom(function(R){
+    if(!R){noRoom();return}
+    var code=String(Math.floor(1000+Math.random()*9000)),rm=null,players={},live={},mode="lobby",scores={},cur=null,answers={},n=0,unsub=[],ended=false;
+    cleanup=function(){unsub.forEach(function(f){try{f()}catch(e){}});if(rm)try{rm.leave()}catch(e){}};
+    R.join("g"+code).then(function(r){rm=r;
+      unsub.push(rm.onPeers(function(ch){
+        players={};live={};(ch.peers||[]).forEach(function(p){var pr=p.presence||{};if(pr.role==="p"&&pr.name){players[p.peer]=pr.name;live[p.peer]=1}});
+        if(mode==="lobby")lobby()}));
+      unsub.push(rm.on("ans",function(m){if(!cur||!m.data||m.data.n!==n||answers[m.peer]!==undefined)return;
+        answers[m.peer]={c:m.data.c,name:players[m.peer]||m.data.name||"?"};
+        var cnt=Object.keys(answers).length;var e=$("#cnt");if(e)e.textContent=cnt+" / "+Object.keys(players).length+" 已作答"}));
+      lobby();
+    }).catch(function(){noRoom()});
+    function lobby(){
+      var names=Object.keys(players).map(function(k){return players[k]});
+      app.innerHTML=topbar("👩‍🏫 主持")+'<p class="msg">請學生輸入房號</p><div class="big">'+code+'</div><div class="card"><b>已加入（'+names.length+'）</b><br>'+names.map(function(x){return '<span class="pill">'+esc(x)+'</span>'}).join("")+'</div><div class="row"><button id="start" '+(names.length&&bank.length>=4?"":"disabled")+'>選擇題搶答（10 題）</button><button id="sstart" '+(names.length&&bank.length>=4?"":"disabled")+'>🐍 蛇棋</button></div>'+(bank.length<4?'<p class="msg">題庫至少要 4 題</p>':"");
+      bindBack();$("#start").onclick=function(){mode="quiz";scores={};n=0;ask(shuf(bank).slice(0,10).map(mk))};$("#sstart").onclick=startSnake;
+    }
+    function ask(qs){
+      if(n>=qs.length){finish();return}
+      cur=qs[n];answers={};
+      rm.emit("q",{n:n,q:cur.q,opts:cur.opts,total:qs.length});
+      app.innerHTML=topbar("第 "+(n+1)+" / "+qs.length+" 題")+'<div class="q">'+esc(cur.q)+'</div><p class="msg" id="cnt">0 / '+Object.keys(players).length+' 已作答</p><div class="row"><button id="rev">公布答案</button></div>';
+      bindBack();
+      $("#rev").onclick=function(){
+        Object.keys(answers).forEach(function(k){if(answers[k].c===cur.a)scores[answers[k].name]=(scores[answers[k].name]||0)+1});
+        rm.emit("rev",{n:n,a:cur.a,scores:scores});
+        app.innerHTML=topbar("答案")+'<div class="q">'+esc(cur.q)+' → <span style="color:var(--ok)">'+esc(cur.a)+'</span></div>'+board()+'<div class="row"><button id="nx">'+(n+1>=qs.length?"看最終排行":"下一題")+'</button></div>';
+        bindBack();$("#nx").onclick=function(){n++;ask(qs)};
+        var wr=Object.keys(answers).filter(function(k){return answers[k].c!==cur.a});
+        wr.forEach(function(k){addWrong(answers[k].name,cur.q,cur.a,answers[k].c)});
+        if(wr.length){SB.modal('<div style="font-size:28px;font-weight:700;margin:6px 0">❌ 答錯的同學（'+wr.length+'）</div><div class="q" style="font-size:36px">'+esc(cur.q)+'</div><div style="margin-bottom:8px">正確答案：'+nz(cur.a)+'</div>'+wr.map(function(k){return '<div style="padding:4px 0;border-bottom:1px solid var(--line)">'+nz(answers[k].name)+' 選了 '+nz(answers[k].c)+'</div>'}).join("")+'<div class="row" style="margin-top:10px"><button id="wk">繼續</button></div>',"w");$("#wk").onclick=function(){SB.modal()}}
+      };
+    }
+    function board(){var arr=Object.keys(players).map(function(k){return players[k]});var seen={};arr=arr.filter(function(x){if(seen[x])return false;seen[x]=1;return true});
+      arr.sort(function(a,b){return(scores[b]||0)-(scores[a]||0)});
+      return '<div class="card"><table>'+arr.map(function(x,i){return '<tr><td>'+(i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1))+'</td><td>'+nz(x)+'</td><td>'+(scores[x]||0)+'</td></tr>'}).join("")+'</table></div>'}
+    function finish(){cur=null;var sn={};Object.keys(players).forEach(function(k){var nm=players[k];if(!sn[nm]){sn[nm]=1;addStat("quiz",nm,scores[nm]||0,10)}});rm.emit("end",{scores:scores});app.innerHTML=topbar("🏆 最終排行")+board()+'<div class="row"><button id="again">再玩一局</button></div>';bindBack();$("#again").onclick=function(){go(host)}}
+
+    function startSnake(){
+      mode="snake";
+      var P=Object.keys(players).map(function(k){return{peer:k,name:players[k],pos:0}}),dup={};
+      P.forEach(function(x){dup[x.name]=(dup[x.name]||0)+1;if(dup[x.name]>1)x.name+=dup[x.name]});
+      var c=0,busy=false,over=false,d=0,q=null,qn=0,w="";
+      app.innerHTML=topbar("🐍 蛇棋（主持）")+SB.ui('<button class="ghost" id="sk">跳過此人</button>');
+      bindBack();var tg=SB.draw($("#sv"));
+      function sync(skip){SB.show(tg,P,c,over);if(skip)return;rm.emit("sst",{p:P.map(function(x){return[x.peer,x.name,x.pos]}),c:c,o:over?1:0,d:d,w:w})}
+      function next(){c=(c+1)%P.length;setTimeout(turn,1500)}
+      function turn(){
+        if(over)return;
+        var k=0;while(k<P.length&&!live[P[c].peer]){c=(c+1)%P.length;k++}
+        if(k>=P.length){SB.modal('<div style="font-size:24px">目前沒有連線的玩家</div>',"r");sync();return}
+        busy=false;d=0;q=mk(bank[Math.floor(Math.random()*bank.length)]);qn++;
+        rm.emit("sq",{n:qn,who:P[c].peer,name:P[c].name,q:q.q,opts:q.opts});
+        sync();SB.modal(SB.qH(P[c].name,q,true),"q");
+      }
+      unsub.push(rm.on("ans",function(m){
+        if(mode!=="snake"||over||busy||!q||!m.data||m.data.g!=="s"||m.data.n!==qn||m.peer!==P[c].peer)return;
+        busy=true;var ok=m.data.c===q.a,qa=q.a,qt=q.q,who=P[c].name;q=null;
+        rm.emit("sr",{n:qn,ok:ok?1:0,a:qa});
+        if(ok){SB.modal(SB.res(true,qa),"r");setTimeout(roll,900)}
+        else{addWrong(who,qt,m.data.c,qa);SB.modal(SB.wrongH(who,qt,m.data.c,qa),"w");$("#wk").onclick=function(){SB.modal();next()}}
+      }));
+      async function roll(){
+        var pl=P[c],dd=1+Math.floor(Math.random()*6);d=dd;sync();SB.modal(SB.diceH(pl.name,dd),"d");
+        var stp=0,won=await SB.move(pl,dd,function(m){sync(!!(++stp%4));var e=document.getElementById("sdm");if(e&&m)e.textContent=m});
+        d=0;
+        if(won){over=true;w=pl.name;P.forEach(function(x){addStat("snake",x.name,x===pl?1:0,1)});sync();SB.modal(SB.winH(pl.name,true),"w");$("#ag").onclick=function(){go(host)};return}
+        sync();SB.modal();
+        if(dd===6)setTimeout(turn,1500);else next();
+      }
+      $("#sk").onclick=function(){if(over||busy)return;busy=true;q=null;qn++;SB.modal();next()};
+      sync();turn();
+    }
+  });
+}
+
+function join(){
+  getRoom(function(R){
+    if(!R){noRoom();return}
+    app.innerHTML=topbar("🙋 加入房間")+'<div class="card"><input id="rc" inputmode="numeric" placeholder="房號（4 位數）" maxlength="4"><div style="height:8px"></div><input id="nm" placeholder="你的名字" maxlength="8" value="'+esc(sname)+'"><div style="height:12px"></div><button id="go" style="width:100%">加入</button></div>';
+    bindBack();
+    $("#go").onclick=function(){
+      var code=$("#rc").value.trim(),name=$("#nm").value.trim();if(!/^\d{4}$/.test(code)||!name)return;
+      var rm=null,unsub=[],myName=name,score=0;
+      cleanup=function(){unsub.forEach(function(f){try{f()}catch(e){}});if(rm)try{rm.leave()}catch(e){}};
+      app.innerHTML=topbar("🙋 "+nz(name))+'<p class="msg">連線中…</p>';bindBack();
+      R.join("g"+code).then(function(r){rm=r;rm.presence({role:"p",name:myName});wait("已加入！等老師開始…");
+        unsub.push(rm.on("q",function(m){var d=m.data;if(!d||!d.opts)return;
+          app.innerHTML=topbar("第 "+(d.n+1)+" / "+d.total+" 題・"+esc(myName))+'<div class="q">'+esc(d.q)+'</div><div class="opts">'+d.opts.map(function(o){return '<button data-o="'+esc(o)+'">'+esc(o)+'</button>'}).join("")+'</div>';bindBack();
+          app.querySelectorAll("[data-o]").forEach(function(b){b.onclick=function(){app.querySelectorAll("[data-o]").forEach(function(x){x.disabled=true});b.style.borderColor="var(--pri)";rm.emit("ans",{n:d.n,c:b.dataset.o,name:myName}).catch(function(){});}});}));
+        unsub.push(rm.on("rev",function(m){var d=m.data;if(!d)return;var s=(d.scores&&d.scores[myName])||0;wait("正確答案：<b style='color:var(--ok)'>"+nz(d.a)+"</b><br>你的分數：<b>"+s+"</b>")}));
+        unsub.push(rm.on("end",function(m){var d=m.data||{},sc=d.scores||{},arr=Object.keys(sc).sort(function(a,b){return sc[b]-sc[a]});var rank=arr.indexOf(myName)+1;wait("遊戲結束！<br>你的分數：<b>"+(sc[myName]||0)+"</b>"+(rank?"（第 "+rank+" 名）":""))}));
+      
+        var myPeer=null,tg=null;
+        unsub.push(rm.onPeers(function(ch){(ch.peers||[]).forEach(function(p){if(p.sameTab)myPeer=p.peer})}));
+        function sUI(){if($("#sv"))return;app.innerHTML=topbar("🐍 "+nz(myName))+SB.ui("");bindBack();tg=SB.draw($("#sv"))}
+        unsub.push(rm.on("sst",function(m){var d=m.data;if(!d||!d.p)return;sUI();
+          var ps=d.p.map(function(a){return{peer:a[0],name:a[1],pos:a[2]}});
+          SB.show(tg,ps,d.c,!!d.o);
+          if(d.o){SB.mkey="";SB.modal(SB.winH(d.w,false),"w")}
+          else if(d.d>0&&ps[d.c]){var key=ps[d.c].name+d.d;if(SB.mkey!==key){SB.mkey=key;SB.modal(SB.diceH(ps[d.c].name,d.d),"d")}}
+          else{SB.mkey="";if(SB.mk==="d")SB.modal()}}));
+        unsub.push(rm.on("sq",function(m){var d=m.data;if(!d||!d.opts)return;sUI();
+          if(!(d.who===myPeer||(!myPeer&&d.name===myName))){if(SB.mk==="q"||SB.mk==="r")SB.modal();return}
+          SB.modal(SB.qH(d.name,d,false),"q");
+          document.querySelectorAll("#sm [data-o]").forEach(function(b){b.onclick=function(){document.querySelectorAll("#sm [data-o]").forEach(function(x){x.disabled=true});b.style.borderColor="var(--pri)";rm.emit("ans",{g:"s",n:d.n,c:b.dataset.o}).catch(function(){})}})}));
+        unsub.push(rm.on("sr",function(m){var d=m.data;if(!d||SB.mk!=="q")return;
+          SB.modal(SB.res(d.ok,d.a),"r");setTimeout(function(){if(SB.mk==="r")SB.modal()},1500)}));
+      }).catch(function(){noRoom()});
+    };
+  });
+  function wait(h){app.innerHTML=topbar("多人連線")+'<div class="q" style="font-size:28px">'+h+'</div>';bindBack()}
+}
+
+/* ===== 直式注音（依教育部《國語注音符號手冊》：注音在字右側，輕聲點在上、調號在右）===== */
+var zon=ls("zy_v1")!=="0",ZW={},ZC={},ZMAX=1,ZT={"2":"\u02ca","3":"\u02c7","4":"\u02cb"};
+function zyFix(v){var q="",t="";if(v.charAt(0)==="0"){q="\u02d9";v=v.slice(1)}var l=v.charAt(v.length-1);if(ZT[l]){t=ZT[l];v=v.slice(0,-1)}return[q,v,t]}
+"一:ㄧ;上:ㄕㄤ4;下:ㄒㄧㄚ4;並:ㄅㄧㄥ4;中:ㄓㄨㄥ;主:ㄓㄨ3;亂:ㄌㄨㄢ4;了:0ㄌㄜ;人:ㄖㄣ2;仍:ㄖㄥ2;代:ㄉㄞ4;位:ㄨㄟ4;作:ㄗㄨㄛ4;你:ㄋㄧ3;使:ㄕ3;來:ㄌㄞ2;例:ㄌㄧ4;個:ㄍㄜ4;停:ㄊㄧㄥ2;先:ㄒㄧㄢ;入:ㄖㄨ4;全:ㄑㄩㄢ2;公:ㄍㄨㄥ;共:ㄍㄨㄥ4;其:ㄑㄧ2;再:ㄗㄞ4;出:ㄔㄨ;分:ㄈㄣ;切:ㄑㄧㄝ;刪:ㄕㄢ;到:ㄉㄠ4;則:ㄗㄜ2;前:ㄑㄧㄢ2;剛:ㄍㄤ;剩:ㄕㄥ4;功:ㄍㄨㄥ;加:ㄐㄧㄚ;勝:ㄕㄥ4;匯:ㄏㄨㄟ4;原:ㄩㄢ2;受:ㄕㄡ4;口:ㄎㄡ3;只:ㄓ3;可:ㄎㄜ3;台:ㄊㄞ2;同:ㄊㄨㄥ2;名:ㄇㄧㄥ2;和:ㄏㄜ2;咬:ㄧㄠ3;單:ㄉㄢ;嗎:0ㄇㄚ;回:ㄏㄨㄟ2;在:ㄗㄞ4;場:ㄔㄤ3;增:ㄗㄥ;多:ㄉㄨㄛ;大:ㄉㄚ4;太:ㄊㄞ4;失:ㄕ;好:ㄏㄠ3;如:ㄖㄨ2;始:ㄕ3;媽:ㄇㄚ;子:ㄗ3;字:ㄗ4;學:ㄒㄩㄝ2;定:ㄉㄧㄥ4;家:ㄐㄧㄚ;對:ㄉㄨㄟ4;少:ㄕㄠ3;就:ㄐㄧㄡ4;局:ㄐㄩ2;山:ㄕㄢ;已:ㄧ3;布:ㄅㄨ4;師:ㄕ;平:ㄆㄧㄥ2;庫:ㄎㄨ4;往:ㄨㄤ3;後:ㄏㄡ4;得:ㄉㄜ2;成:ㄔㄥ2;戰:ㄓㄢ4;戲:ㄒㄧ4;房:ㄈㄤ2;所:ㄙㄨㄛ3;才:ㄘㄞ2;批:ㄆㄧ;把:ㄅㄚ3;折:ㄓㄜ2;抵:ㄉㄧ3;持:ㄔ2;挑:ㄊㄧㄠ3;排:ㄆㄞ2;換:ㄏㄨㄢ4;搶:ㄑㄧㄤ3;擇:ㄗㄜ2;擋:ㄉㄤ3;擲:ㄓ2;敗:ㄅㄞ4;數:ㄕㄨ4;新:ㄒㄧㄣ;日:ㄖ4;是:ㄕ4;最:ㄗㄨㄟ4;會:ㄏㄨㄟ4;月:ㄩㄝ4;有:ㄧㄡ3;本:ㄅㄣ3;束:ㄕㄨ4;板:ㄅㄢ3;果:ㄍㄨㄛ3;查:ㄔㄚ2;格:ㄍㄜ2;案:ㄢ4;梯:ㄊㄧ;棋:ㄑㄧ2;棒:ㄅㄤ4;機:ㄐㄧ;次:ㄘ4;正:ㄓㄥ4;此:ㄘ3;步:ㄅㄨ4;每:ㄇㄟ3;水:ㄕㄨㄟ3;沒:ㄇㄟ2;油:ㄧㄡ2;法:ㄈㄚ3;流:ㄌㄧㄡ2;消:ㄒㄧㄠ;清:ㄑㄧㄥ;滑:ㄏㄨㄚ2;火:ㄏㄨㄛ3;無:ㄨ2;爬:ㄆㄚ2;牌:ㄆㄞ2;獲:ㄏㄨㄛ4;玩:ㄨㄢ2;現:ㄒㄧㄢ4;理:ㄌㄧ3;生:ㄕㄥ;產:ㄔㄢ3;用:ㄩㄥ4;畫:ㄏㄨㄚ4;疊:ㄉㄧㄝ2;登:ㄉㄥ;的:0ㄉㄜ;盤:ㄆㄢ2;目:ㄇㄨ4;盾:ㄉㄨㄣ4;看:ㄎㄢ4;確:ㄑㄩㄝ4;碼:ㄇㄚ3;稱:ㄔㄥ;第:ㄉㄧ4;等:ㄉㄥ3;答:ㄉㄚ2;管:ㄍㄨㄢ3;紀:ㄐㄧ4;終:ㄓㄨㄥ;結:ㄐㄧㄝ2;統:ㄊㄨㄥ3;線:ㄒㄧㄢ4;績:ㄐㄧ4;繼:ㄐㄧ4;續:ㄒㄩ4;習:ㄒㄧ2;翻:ㄈㄢ;老:ㄌㄠ3;耗:ㄏㄠ4;能:ㄋㄥ2;自:ㄗ4;至:ㄓ4;號:ㄏㄠ4;蛇:ㄕㄜ2;行:ㄒㄧㄥ2;被:ㄅㄟ4;要:ㄧㄠ4;規:ㄍㄨㄟ;計:ㄐㄧ4;設:ㄕㄜ4;認:ㄖㄣ4;請:ㄑㄧㄥ3;護:ㄏㄨ4;讓:ㄖㄤ4;走:ㄗㄡ3;起:ㄑㄧ3;超:ㄔㄠ;跳:ㄊㄧㄠ4;踩:ㄘㄞ3;身:ㄕㄣ;輪:ㄌㄨㄣ2;輸:ㄕㄨ;返:ㄈㄢ3;退:ㄊㄨㄟ4;這:ㄓㄜ4;連:ㄌㄧㄢ2;進:ㄐㄧㄣ4;遇:ㄩ4;遊:ㄧㄡ2;過:ㄍㄨㄛ4;達:ㄉㄚ2;選:ㄒㄩㄢ3;邀:ㄧㄠ;還:ㄏㄞ2;部:ㄅㄨ4;配:ㄆㄟ4;重:ㄓㄨㄥ4;錄:ㄌㄨ4;錯:ㄘㄨㄛ4;開:ㄎㄞ;間:ㄐㄧㄢ;限:ㄒㄧㄢ4;除:ㄔㄨ2;需:ㄒㄩ;面:ㄇㄧㄢ4;頁:ㄧㄝ4;預:ㄩ4;題:ㄊㄧ2;餘:ㄩ2;首:ㄕㄡ3;骰:ㄊㄡ2;鬥:ㄉㄡ4;點:ㄉㄧㄢ3;注:ㄓㄨ4;音:ㄧㄣ;關:ㄍㄨㄢ;誤:ㄨ4;項:ㄒㄧㄤ4;三:ㄙㄢ;欄:ㄌㄢ2;空:ㄎㄨㄥ;白:ㄅㄞ2;時:ㄕ2;動:ㄉㄨㄥ4;他:ㄊㄚ;補:ㄅㄨ3;四:ㄙ4;不:ㄅㄨ4;也:ㄧㄝ3;事:ㄕ4;些:ㄒㄧㄝ;件:ㄐㄧㄢ4;伐:ㄈㄚ2;但:ㄉㄢ4;住:ㄓㄨ4;值:ㄓ2;備:ㄅㄟ4;傳:ㄔㄨㄢ2;傷:ㄕㄤ;優:ㄧㄡ;充:ㄔㄨㄥ;冒:ㄇㄠ4;冰:ㄅㄧㄥ;冷:ㄌㄥ3;別:ㄅㄧㄝ2;利:ㄌㄧ4;削:ㄒㄩㄝ;劇:ㄐㄩ4;化:ㄏㄨㄚ4;區:ㄑㄩ;升:ㄕㄥ;卡:ㄎㄚ3;危:ㄨㄟ;去:ㄑㄩ4;取:ㄑㄩ3;叮:ㄉㄧㄥ;合:ㄏㄜ2;否:ㄈㄡ3;吹:ㄔㄨㄟ;命:ㄇㄧㄥ4;固:ㄍㄨ4;圖:ㄊㄨ2;地:ㄉㄧ4;型:ㄒㄧㄥ2;域:ㄩ4;堅:ㄐㄧㄢ;填:ㄊㄧㄢ2;壞:ㄏㄨㄞ4;夜:ㄧㄝ4;天:ㄊㄧㄢ;孔:ㄎㄨㄥ3;存:ㄘㄨㄣ2;安:ㄢ;害:ㄏㄞ4;富:ㄈㄨ4;寒:ㄏㄢ2;尋:ㄒㄩㄣ2;小:ㄒㄧㄠ3;尖:ㄐㄧㄢ;尚:ㄕㄤ4;屋:ㄨ;岸:ㄢ4;島:ㄉㄠ3;帶:ㄉㄞ4;度:ㄉㄨ4;建:ㄐㄧㄢ4;很:ㄏㄣ3;徑:ㄐㄧㄥ4;急:ㄐㄧ2;情:ㄑㄧㄥ2;打:ㄉㄚ3;扣:ㄎㄡ4;找:ㄓㄠ3;拾:ㄕ2;捉:ㄓㄨㄛ;捕:ㄅㄨ3;採:ㄘㄞ3;探:ㄊㄢ4;描:ㄇㄧㄠ2;損:ㄙㄨㄣ3;搭:ㄉㄚ;摘:ㄓㄞ;撈:ㄌㄠ;撐:ㄔㄥ;撿:ㄐㄧㄢ3;擊:ㄐㄧ;收:ㄕㄡ;效:ㄒㄧㄠ4;救:ㄐㄧㄡ4;料:ㄌㄧㄠ4;於:ㄩ2;易:ㄧ4;晚:ㄨㄢ3;晴:ㄑㄧㄥ2;暴:ㄅㄠ4;朗:ㄌㄤ3;木:ㄇㄨ4;未:ㄨㄟ4;材:ㄘㄞ2;東:ㄉㄨㄥ;林:ㄌㄧㄣ2;枝:ㄓ;條:ㄊㄧㄠ2;棚:ㄆㄥ2;森:ㄙㄣ;標:ㄅㄧㄠ;樹:ㄕㄨ4;殊:ㄕㄨ;毒:ㄉㄨ2;氣:ㄑㄧ4;求:ㄑㄧㄡ2;沖:ㄔㄨㄥ;沙:ㄕㄚ;沿:ㄧㄢ2;活:ㄏㄨㄛ2;浪:ㄌㄤ4;海:ㄏㄞ3;淋:ㄌㄧㄣ2;深:ㄕㄣ;測:ㄘㄜ4;源:ㄩㄢ2;準:ㄓㄨㄣ3;溫:ㄨㄣ;漂:ㄆㄧㄠ;漫:ㄇㄢ4;潮:ㄔㄠ2;濕:ㄕ;濱:ㄅㄧㄣ;灘:ㄊㄢ;為:ㄨㄟ2;烈:ㄌㄧㄝ4;熬:ㄠ2;燃:ㄖㄢ2;營:ㄧㄥ2;片:ㄆㄧㄢ4;物:ㄨ4;特:ㄊㄜ4;猛:ㄇㄥ3;獸:ㄕㄡ4;由:ㄧㄡ2;留:ㄌㄧㄡ2;略:ㄌㄩㄝ4;發:ㄈㄚ;知:ㄓ;砍:ㄎㄢ3;符:ㄈㄨ2;策:ㄘㄜ4;算:ㄙㄨㄢ4;篝:ㄍㄡ;簡:ㄐㄧㄢ3;糧:ㄌㄧㄤ2;級:ㄐㄧ2;索:ㄙㄨㄛ3;緊:ㄐㄧㄣ3;緣:ㄩㄢ2;編:ㄅㄧㄢ;群:ㄑㄩㄣ2;腐:ㄈㄨ3;與:ㄩ3;若:ㄖㄨㄛ4;草:ㄘㄠ3;著:0ㄓㄜ;藻:ㄗㄠ3;處:ㄔㄨ4;蛋:ㄉㄢ4;蟲:ㄔㄨㄥ2;衝:ㄔㄨㄥ;衡:ㄏㄥ2;裡:ㄌㄧ3;製:ㄓ4;襲:ㄒㄧ2;西:ㄒㄧ;訊:ㄒㄩㄣ4;記:ㄐㄧ4;許:ㄒㄩ3;試:ㄕ4;變:ㄅㄧㄢ4;豐:ㄈㄥ;豬:ㄓㄨ;貝:ㄅㄟ4;負:ㄈㄨ4;資:ㄗ;足:ㄗㄨ2;路:ㄌㄨ4;輯:ㄐㄧ2;述:ㄕㄨ4;造:ㄗㄠ4;遜:ㄒㄩㄣ4;避:ㄅㄧ4;邊:ㄅㄧㄢ;野:ㄧㄝ3;量:ㄌㄧㄤ4;銷:ㄒㄧㄠ;長:ㄔㄤ2;降:ㄐㄧㄤ4;險:ㄒㄧㄢ3;集:ㄐㄧ2;難:ㄋㄢ2;雨:ㄩ3;靜:ㄐㄧㄥ4;靠:ㄎㄠ4;頭:ㄊㄡ2;類:ㄌㄟ4;風:ㄈㄥ;食:ㄕ2;香:ㄒㄧㄤ;高:ㄍㄠ;魚:ㄩ2;魯:ㄌㄨ3;鳥:ㄋㄧㄠ3;木頭:ㄇㄨ4 0ㄊㄡ;避難:ㄅㄧ4 ㄋㄢ4;部分:ㄅㄨ4 ㄈㄣ4;骰子:ㄊㄡ2 0ㄗ;梯子:ㄊㄧ 0ㄗ;學生:ㄒㄩㄝ2 ㄕㄥ;老師:ㄌㄠ3 ㄕ;身分:ㄕㄣ ㄈㄣ4;切換:ㄑㄧㄝ ㄏㄨㄢ4;還原:ㄏㄨㄢ2 ㄩㄢ2;重新:ㄔㄨㄥ2 ㄒㄧㄣ;每行:ㄇㄟ3 ㄏㄤ2;排行:ㄆㄞ2 ㄏㄤ2;往回數:ㄨㄤ3 ㄏㄨㄟ2 ㄕㄨ3".split(";").forEach(function(e){var i=e.indexOf(":");if(i<1)return;var k=e.slice(0,i),v=e.slice(i+1).split(" ").map(zyFix);if(k.length>1){ZW[k]=v;ZMAX=Math.max(ZMAX,k.length)}else ZC[k]=v[0]});
+function zyChar(c,sy){var s=document.createElement("span");s.className="zy";
+  s.innerHTML='<span class="zc">'+c+'</span><span class="zb"><span class="zs">'+(sy[0]?'<i class="zq">'+sy[0]+'</i>':"")+Array.from(sy[1]).map(function(x){return"<i>"+x+"</i>"}).join("")+(sy[2]?'<span class="zt">'+sy[2]+'</span>':"")+'</span></span>';return s}
+function zyNode(tn){var t=tn.nodeValue;if(!/[\u4e00-\u9fff]/.test(t))return;var f=document.createDocumentFragment(),buf="",i=0;
+  function flush(){if(buf){f.appendChild(document.createTextNode(buf));buf=""}}
+  while(i<t.length){var done=false;
+    for(var L=Math.min(ZMAX,t.length-i);L>=2&&!done;L--){var w=ZW[t.substr(i,L)];if(w){flush();for(var j=0;j<L;j++)f.appendChild(zyChar(t.charAt(i+j),w[j]));i+=L;done=true}}
+    if(done)continue;
+    var c=t.charAt(i);if(ZC[c]){flush();f.appendChild(zyChar(c,ZC[c]))}else buf+=c;i++}
+  flush();tn.parentNode.replaceChild(f,tn)}
+var ZSK="svg,textarea,input,script,style,.q,.opts,.mem,.item,.pill,.nz,.zy,.sbm,#tn,#sn_log";
+function zyRun(){if(!zon)return;var w=document.createTreeWalker(app,NodeFilter.SHOW_TEXT),a=[],n;while((n=w.nextNode()))a.push(n);
+  a.forEach(function(x){var p=x.parentElement;if(p&&!p.closest(ZSK))zyNode(x)})}
+var zq=0,zobs=new MutationObserver(function(){if(zq)return;zq=setTimeout(function(){zq=0;zobs.disconnect();try{zyRun()}catch(e){}zobs.observe(app,{childList:true,subtree:true})},30)});
+zobs.observe(app,{childList:true,subtree:true});
+function nz(t){return '<span class="nz">'+esc(t)+'</span>'}
+
+home();
+</script>
+</body>
+</html>
