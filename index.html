@@ -154,6 +154,38 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 #rb .row>*{flex:none}#rb button{min-height:0;font-weight:400}#rb .big{color:inherit;letter-spacing:0;font-weight:400}#rb .pill{margin:0 0 6px}
 #rb .rbtop{margin-bottom:6px}#rb{border-radius:14px}#app:has(#rb){max-width:960px}
 
+.bw{display:flex;align-items:center;gap:8px;margin:8px 0}.bn{width:6.5em;text-align:right;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
+.bt{flex:1;height:28px;background:var(--line);border-radius:8px;overflow:hidden}.bf{height:100%;border-radius:8px;transition:width .6s}.bv{width:2.5em;font-weight:800;font-size:20px;flex:none}
+@keyframes sbshake{0%{transform:rotate(0) scale(1)}25%{transform:rotate(-16deg) scale(1.12)}50%{transform:rotate(14deg) scale(.94)}75%{transform:rotate(-9deg) scale(1.1)}100%{transform:rotate(0) scale(1)}}
+@keyframes sbpop{0%{transform:scale(.7)}60%{transform:scale(1.35)}100%{transform:scale(1)}}
+.sbbig.rolling{animation:sbshake .35s infinite}.sbbig.land{animation:sbpop .45s}
+#rb2{--bg:#f4efe4;--card:#fffaf0;--ink:#2b2a26;--mut:#7a7466;--bd:#d8cfb8;--ac:#2f6f5e;--bad:#b33a2e;color-scheme:light}
+@media(prefers-color-scheme:dark){#rb2{--bg:#1d1f1c;--card:#282b27;--ink:#ece7da;--mut:#a39d8c;--bd:#444840;--ac:#5fb59c;--bad:#e2705f;color-scheme:dark}}
+#rb2 *{box-sizing:border-box}
+#rb2{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,"Noto Sans TC","PingFang TC",sans-serif}
+#rb2{max-width:960px;margin:0 auto;padding:14px}
+#rb2 h1{font-size:22px;margin:4px 0}
+#rb2 h2{font-size:17px;margin:12px 0 6px}
+#rb2 .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px}
+#rb2 .grid{display:grid;gap:10px}
+#rb2 .pg{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+#rb2 .hg{grid-template-columns:repeat(3,1fr)}
+@media(max-width:600px){#rb2 .hg{grid-template-columns:1fr}}
+#rb2 button{font:inherit;border:1px solid var(--ac);background:var(--ac);color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer}
+#rb2 button.sec{background:transparent;color:var(--ac)}
+#rb2 .act{background:var(--card);color:var(--ink);border:2px solid var(--bd);text-align:left;border-radius:12px;padding:12px}
+#rb2 .act:hover{border-color:var(--ac)}
+#rb2 .mut{color:var(--mut);font-size:13px}
+#rb2 .warn{color:var(--bad);font-size:13px}
+#rb2 .hide{display:none}
+#rb2 .cur{border-color:var(--ac);border-width:2px}
+#rb2 .dead{opacity:.45}
+#rb2 .pill{display:inline-block;background:var(--bd);border-radius:20px;padding:4px 16px;font-size:26px;font-weight:700}
+#rb2 .ic{font-size:13px;line-height:1.3;word-break:break-all}
+#rb2 input{font:inherit;padding:4px 6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--ink);width:100%}
+#rb2 pre{white-space:pre-wrap;margin:0;font:inherit}
+#rb2 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#rb2 .row>*{flex:none}#rb2 button{min-height:0;font-weight:400}#rb2 .pill{margin:0}#rb2 .grid{display:grid}#app:has(#rb2){max-width:960px}
 </style>
 </head>
 <body>
@@ -213,11 +245,12 @@ function home(){
   }
   app.innerHTML='<div class="top"><h1 style="margin:0">🧒 '+nz(sname)+'</h1><div class="sp"></div>'+switchBtn()+'</div><h2>遊戲</h2><div class="grid">'+
   '<button class="game" id="g1"><b>🎯 選擇題挑戰</b><span>看題目，選出正確答案</span></button>'+
-  '<button class="game" id="g2"><b>🃏 翻牌配對</b><span>把題目和答案配成一對</span></button>'+
+  '<button class="game" id="g2"><b>🃏 翻牌配對</b><span>國字配注音、注音配國字</span></button>'+
   '<button class="game" id="g4"><b>🏝️ 魯濱遜漂流記</b><span>單人卡牌生存，活過 14 回合</span></button>'+
+  '<button class="game" id="g5"><b>🏝️ 魯濱遜漂流記・多人版</b><span>同一台平板輪流，2–14 人，合作求生</span></button>'+
   '<button class="game" id="gj"><b>🙋 多人連線</b><span>輸入老師的房號加入（選擇題搶答、蛇棋）</span></button></div>';
   bindSwitch();
-  $("#g1").onclick=function(){go(quiz)};$("#g2").onclick=function(){go(memory)};$("#g4").onclick=function(){go(robinson)};$("#gj").onclick=function(){go(join)};
+  $("#g1").onclick=function(){go(quiz)};$("#g2").onclick=function(){go(memory)};$("#g4").onclick=function(){go(robinson)};$("#g5").onclick=function(){go(robinson2)};$("#gj").onclick=function(){go(join)};
 }
 
 /* ===== 分數統計（老師）===== */
@@ -265,9 +298,12 @@ function quiz(){
 }
 
 /* ===== 單人：翻牌配對 ===== */
+function isZy(t){return /^[\u3105-\u3129\u02ca\u02c7\u02cb\u02d9\s]+$/.test(t)&&/[\u3105-\u3129]/.test(t)}
+function isHan(t){return /[\u4e00-\u9fff]/.test(t)&&!/[\u3105-\u3129]/.test(t)}
 function memory(){
-  if(bank.length<2){app.innerHTML=topbar("🃏")+'<p class="msg">題庫至少要 2 題。</p>';bindBack();return}
-  var pick=shuf(bank).slice(0,6),cards=[];
+  var pool=bank.filter(function(b){return(isZy(b.q)&&isHan(b.a))||(isHan(b.q)&&isZy(b.a))}); // 只用「國字配注音」或「注音配國字」的題目
+  if(pool.length<2){app.innerHTML=topbar("🃏")+'<p class="msg">題庫裡要有至少 2 題「國字配注音」或「注音配國字」的題目才能玩。</p>';bindBack();return}
+  var pick=shuf(pool).slice(0,6),cards=[];
   pick.forEach(function(p,k){cards.push({k:k,t:p.q});cards.push({k:k,t:p.a})});
   cards=shuf(cards);var open=[],found=0,moves=0,busy=false;
   function draw(){
@@ -318,11 +354,16 @@ SB.ui=function(extra){return '<div id="sm"></div><div class="sbw"><svg id="sv" v
 SB.modal=function(h,kind){var m=document.getElementById("sm");if(!m){if(!h)return;m=document.createElement("div");m.id="sm";app.appendChild(m)}
   if(!h){m.style.display="none";m.innerHTML="";SB.mk="";return}
   m.innerHTML='<div class="smc">'+h+'</div>';m.style.display="flex";SB.mk=kind||""};
-SB.diceH=function(name,d){return '<div style="font-size:20px">'+nz(name)+' 擲出</div><div class="sbbig">🎲 '+d+'</div><div class="sbm" id="sdm"></div>'};
+SB.diceH=function(name,d){return '<div style="font-size:20px">'+nz(name)+' 骰骰子</div><div class="sbbig" id="sbd">🎲</div><div class="sbm" id="sdm"></div>'};
+SB.rollDice=function(final,ms){ // 骰子滾動動畫：數字快速跳動並逐漸變慢，最後停在結果
+  var t0=Date.now(),e=document.getElementById("sbd");if(!e)return;e.className="sbbig rolling";
+  (function tick(){var el=document.getElementById("sbd");if(!el)return;var left=ms-(Date.now()-t0);
+    if(left<=0){el.className="sbbig land";el.textContent="🎲 "+final;return}
+    el.textContent="🎲 "+(1+Math.floor(Math.random()*6));setTimeout(tick,60+(1-left/ms)*160)})()};
 SB.winH=function(name,btn){return '<div class="sbbig">🏆</div><div style="font-size:30px;font-weight:700;margin:6px 0">'+nz(name)+' 獲勝！</div>'+(btn?'<button id="ag">再玩一局</button>':"")};
 SB.qH=function(who,q,dis){return '<b>'+(dis?'輪到 '+nz(who)+' 作答':nz(who)+'：答對才能擲骰子')+'</b><div class="q">'+esc(q.q)+'</div><div class="opts">'+q.opts.map(function(o){return '<button '+(dis?'disabled':'data-o="'+esc(o)+'"')+'>'+esc(o)+'</button>'}).join("")+'</div>'};
 SB.res=function(ok,a){return '<div style="font-size:32px;font-weight:700;margin:8px 0">'+(ok?"✅ 答對了！":"❌ 答錯了")+'</div>'+(ok?"":'<div>答案：'+nz(a)+'</div>')};
-SB.wrongH=function(name,q,c,a){return '<div style="font-size:30px;font-weight:700;margin:6px 0">❌ '+nz(name)+' 答錯了</div><div class="q" style="font-size:36px">'+esc(q)+'</div><div>選了：'+nz(c)+'</div><div style="margin-bottom:10px">正確答案：'+nz(a)+'</div><div class="row"><button id="wk">繼續</button></div>'};
+SB.wrongH=function(name,q,c,a){return '<div style="font-size:30px;font-weight:700;margin:6px 0">❌ '+nz(name)+' 答錯了</div><div class="q" style="font-size:36px">'+esc(q)+'</div><div>選了：'+nz(c)+'</div><div style="margin-bottom:10px">正確答案：'+nz(a)+'</div><div class="row"><button id="wok">✅ 老師判定答對</button><button class="ghost" id="wk">換下一位</button></div>'};
 SB.move=async function(pl,dd,say){ // 走棋動畫；回傳是否抵達 100
   var sl=function(ms){return new Promise(function(r){setTimeout(r,ms)})},target=pl.pos+dd;
   if(target>100){target=200-target;say("超過 100，折返");while(pl.pos<100){pl.pos++;say();await sl(140)}while(pl.pos>target){pl.pos--;say();await sl(140)}}
@@ -558,6 +599,96 @@ renderEditor();
 }
 
 /* ===== 多人連線（room）===== */
+/* ===== 魯濱遜漂流記・多人版（同一台平板輪流）===== */
+function robinson2(){
+  app.innerHTML=`<div id="rb2"><div class="rbtop" style="margin-bottom:6px"><button class="sec" id="rb2_home">← 主畫面</button></div>
+<h1>🏝️ 魯濱遜漂流記・多人版</h1><div class="mut">同一台裝置輪流操作 · 2~14 人 · 合作求生、競爭排名</div>
+<section id="rb2_setup"><div class="card" style="margin-top:10px"><div class="row"><b>玩家人數</b><button class="sec" id="rb2_mn">−</button><b id="rb2_cnt">4</b><button class="sec" id="rb2_pl">＋</button></div>
+<div class="grid pg" id="rb2_names" style="margin:10px 0"></div><button id="rb2_go">開始遊戲</button>
+<p class="mut">規則:每人各自持有生命、食物、木頭、庇護所與醫護站。每天先出現 1 張共同事件(影響所有存活者),玩家依序從 3 張行動卡中選 1 張,全部選完後結算事件與挨餓。生命歸零者退出,其他人繼續;撐到第 14 天結束的人獲勝,並依得分排名。<br>
+建造庇護所不分卡片等級,出牌即升一級(Lv.1/2/3 花費 3/4/5🪵,可抵銷 1/2/3 次傷害);事件可能使庇護所降一級、使醫護站損壞。醫護站花費 3🪵,每天結算後回復 1❤️。修理花費 1🍖 2🪵,優先修醫護站,其次恢復一級庇護所。</p></div></section>
+<section id="rb2_game" class="hide"><div class="row" style="margin-top:10px"><span class="pill" id="rb2_day"></span></div>
+<h2>今日事件</h2><div class="card" id="rb2_ev"></div><h2>玩家狀態</h2><div class="grid pg" id="rb2_ps"></div>
+<h2 id="rb2_turnH"></h2><div class="grid hg" id="rb2_hand"></div><div class="row" style="margin-top:10px"><button id="rb2_st" class="hide">套用事件並結算</button><button id="rb2_nx" class="hide">下一天</button></div>
+<h2>今日紀錄</h2><div class="card"><pre id="rb2_log" class="mut"></pre></div></section>
+<section id="rb2_end" class="hide"><div class="card" style="margin-top:10px"><h2 id="rb2_et" style="text-align:center;font-size:22px"></h2><div id="rb2_er"></div><div class="row" style="margin-top:10px;justify-content:center"><button id="rb2_again">再玩一次</button></div></div></section>
+</div>`;
+  document.getElementById("rb2_home").onclick=function(){go(home)};
+
+const R=14,MAXP=14,SH=[{n:'簡易棚屋',u:1,c:3},{n:'木製小屋',u:2,c:4},{n:'堅固木屋',u:3,c:5}],CL=3,RP={f:1,w:2};
+const CARDS={berry:{t:'採集野果',d:'+2🍖',f:2},fish:{t:'捕魚',d:'+3🍖',f:3},hunt:{t:'冒險覓食',d:'+4🍖 -1❤️',f:4,h:-1},
+wood:{t:'收集木材',d:'+3🪵',w:3},forest:{t:'深入森林',d:'+4🪵 -1❤️',w:4,h:-1},
+build:{t:'建造庇護所',d:'升一級:Lv1 -3🪵、Lv2 -4🪵、Lv3 -5🪵',k:1},clinic:{t:'建造醫護站',d:'-3🪵,之後每天回復 1❤️',k:1},
+repair:{t:'修理',d:'-1🍖 -2🪵,修好醫護站或恢復一級庇護所',k:1},aid:{t:'援助',d:'-1🍖,給生命最低的隊友 +1🍖',k:1},rest:{t:'休息',d:'+1❤️',h:1}};
+const POOL=['berry','berry','fish','hunt','wood','wood','forest','build','build','clinic','repair','aid','rest'];
+const EV=[{t:'小雨',d:'冰冷的雨水淋濕所有人。',h:-1,s:1},{t:'海鳥群',d:'海鳥留下許多鳥蛋。',f:1},{t:'野豬出沒',d:'野豬衝進營地!',h:-2,s:1},
+{t:'暴風雨',d:'狂風吹走木頭並損壞庇護所。',w:-1,h:-1,s:1,sd:1},{t:'寒冷夜晚',d:'夜裡氣溫驟降。',h:-1,s:1},{t:'食物腐壞',d:'高溫讓存糧腐壞。',f:-2},
+{t:'海浪沖走',d:'大浪沖走一些木頭。',w:-2},{t:'毒蟲叮咬',d:'毒蟲無孔不入,庇護所也擋不住。',h:-1},{t:'野獸夜襲',d:'野獸襲擊並破壞醫護站。',h:-1,s:1,cd:1},
+{t:'漂流木',d:'潮水帶來木頭。',w:2},{t:'烈日曝曬',d:'烈日讓食物變質。',f:-1,h:-1,s:1},{t:'颶風',d:'颶風同時損壞庇護所與醫護站!',h:-2,s:1,sd:1,cd:1},
+{t:'山洪暴發',d:'洪水沖毀醫護站。',w:-1,h:-1,s:1,cd:1},{t:'平靜的一天',d:'沒有特別的事發生。'}];
+const sh=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const mkP=n=>({n,hp:10,food:0,wood:0,lv:0,peak:0,uses:0,max:0,clinic:0,alive:true,died:0});
+function hand(){const o=[];for(const id of sh(POOL))if(!o.includes(id)&&o.length<3)o.push(id);return o}
+function setLv(P,l){const old=P.max;P.lv=l;P.max=l?SH[l-1].u:0;P.uses=P.max>old?P.uses+P.max-old:Math.min(P.uses,P.max)}
+function die(G,P,log){if(P.hp<=0&&P.alive){P.alive=false;P.hp=0;P.died=G.day;log.push(`💀 ${P.n} 倒下了`)}}
+function play(G,P,id,log){
+ const c=CARDS[id],ok=m=>{log.push(`${P.n}「${c.t}」${m}`);return 0},fail=m=>{log.push(`${P.n}「${c.t}」失敗:${m}(本日行動無效)`)};
+ if(!c.k){P.food+=c.f||0;P.wood+=c.w||0;P.hp=Math.min(10,P.hp+(c.h||0));ok(c.d);die(G,P,log);return}
+ if(id==='build'){const co=P.lv<3&&SH[P.lv].c;if(P.lv>=3)return fail('已是最高等級');if(P.wood<co)return fail(`木頭不足(需 ${co})`);
+  P.wood-=co;setLv(P,P.lv+1);P.peak=Math.max(P.peak,P.lv);return ok(`升為 Lv.${P.lv} ${SH[P.lv-1].n}(-${co}🪵)`)}
+ if(id==='clinic'){if(P.clinic===1)return fail('已有醫護站');if(P.clinic===2)return fail('醫護站已損壞,請修理');if(P.wood<CL)return fail(`木頭不足(需 ${CL})`);P.clinic=1;P.wood-=CL;return ok(`建好醫護站(-${CL}🪵)`)}
+ if(id==='repair'){const t=P.clinic===2?'c':P.lv<P.peak?'s':0;if(!t)return fail('沒有需要修理的設施');if(P.food<RP.f||P.wood<RP.w)return fail(`需要 ${RP.f}🍖 ${RP.w}🪵`);
+  P.food-=RP.f;P.wood-=RP.w;if(t==='c')P.clinic=1;else setLv(P,P.lv+1);return ok(t==='c'?'修好了醫護站':`庇護所恢復為 Lv.${P.lv}`)}
+ if(id==='aid'){const o=G.ps.filter(x=>x.alive&&x!==P).sort((a,b)=>a.hp-b.hp)[0];if(!o)return fail('沒有其他存活隊友');if(P.food<1)return fail('沒有食物');P.food--;o.food++;return ok(`把 1🍖 給了 ${o.n}`)}
+}
+function settle(G,ev,log){
+ for(const P of G.ps.filter(p=>p.alive)){
+  P.food=Math.max(0,P.food+(ev.f||0));P.wood=Math.max(0,P.wood+(ev.w||0));let d=-(ev.h||0),m=[];
+  if(ev.h>0)P.hp=Math.min(10,P.hp+ev.h);
+  if(d>0){let a=0;if(ev.s&&P.uses>0){a=Math.min(d,P.uses);P.uses-=a;m.push(`⛺抵銷 ${a}`)}P.hp-=d-a;if(d-a)m.push(`-${d-a}❤️`)}
+  if(ev.sd&&P.lv>0){setLv(P,P.lv-1);m.push(`庇護所損壞→Lv.${P.lv}`)}
+  if(ev.cd&&P.clinic===1){P.clinic=2;m.push('醫護站損壞')}
+  if(m.length)log.push(`${P.n}:${m.join('、')}`);die(G,P,log)}
+ for(const P of G.ps.filter(p=>p.alive)){if(P.food>0)P.food--;else{P.hp--;log.push(`${P.n}:挨餓 -1❤️`)}die(G,P,log)}
+ for(const P of G.ps.filter(p=>p.alive))if(P.clinic===1&&P.hp<10){P.hp++;log.push(`🏥 ${P.n} 回復 1❤️`)}
+}
+function newG(names){return{day:0,ps:names.map(mkP),evs:sh(EV).slice(0,R)}}
+function score(P){return P.hp*2+P.food+P.wood+P.lv*3+(P.clinic===1?2:0)}
+
+const $=i=>document.getElementById('rb2_'+i)||document.createElement('div'),esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+let n=4,G,names=[];
+function drawNames(){const old=[...document.querySelectorAll('#rb2_names input')].map(x=>x.value);$('cnt').textContent=n;$('names').innerHTML=Array.from({length:n},(_,i)=>`<input value="${esc(old[i]||'玩家'+(i+1))}" maxlength="8">`).join('')}
+$('mn').onclick=()=>{n=Math.max(2,n-1);drawNames()};$('pl').onclick=()=>{n=Math.min(MAXP,n+1);drawNames()};
+function show(s){['setup','game','end'].forEach(x=>$(x).classList.toggle('hide',x!==s));window.scrollTo(0,0)}
+$('go').onclick=()=>{names=[...document.querySelectorAll('#rb2_names input')].map((x,i)=>x.value.trim()||'玩家'+(i+1));G=newG(names);show('game');startDay()};
+$('again').onclick=()=>{show('setup')};
+function startDay(){G.day++;G.ev=G.evs[G.day-1];G.order=G.ps.filter(p=>p.alive);G.i=0;G.log=[];G.phase='pick';G.cur=hand();render()}
+const effs=e=>[e.f&&`${e.f>0?'+':''}${e.f}🍖`,e.w&&`${e.w>0?'+':''}${e.w}🪵`,e.h&&`${e.h>0?'+':''}${e.h}❤️`,e.sd&&'庇護所損壞(降一級)',e.cd&&'醫護站損壞'].filter(Boolean).join('、')||'無資源變化';
+function dry(P,id){const c=JSON.parse(JSON.stringify(G)),L=[];const Q=c.ps[G.ps.indexOf(P)];play(c,Q,id,L);return L.find(l=>l.includes('失敗'))}
+function icons(P){return`❤️${'❤️'.repeat(0)}`}
+function render(){
+ $('day').textContent=`第 ${G.day} / ${R} 天`;const e=G.ev;
+ $('ev').innerHTML=`<b>${e.h<0&&e.s?'⛺ ':''}${esc(e.t)}</b><br>${esc(e.d)}<br><span class="mut">資源變化:${effs(e)}(對每位存活玩家)<br>${e.h<0?(e.s?'⛺ 生命傷害可由庇護所抵銷':'生命傷害無法由庇護所抵銷'):'本事件不造成生命傷害'}</span>`;
+ $('ps').innerHTML=G.ps.map(P=>{const cur=G.phase==='pick'&&G.order[G.i]===P;
+  return`<div class="card ${cur?'cur':''} ${P.alive?'':'dead'}"><b>${cur?'👉 ':''}${nz(P.n)}</b>${P.alive?`<div class="ic">${'❤️'.repeat(P.hp)}${'🖤'.repeat(10-P.hp)}</div><div>🍖${P.food} 🪵${P.wood}</div><div class="ic">${P.lv?`${'⛺'.repeat(P.uses)}${'⬜'.repeat(P.max-P.uses)} Lv.${P.lv}`:'⛺ 無'}${P.lv<P.peak?' ⚠️受損':''}</div><div class="ic">${['🏥 無','🏥 運作中','🏚️ 損壞'][P.clinic]}</div>`:`<div class="mut">💀 第 ${P.died} 天倒下</div>`}</div>`}).join('');
+ $('log').textContent=G.log.join('\n')||'尚無紀錄。';
+ $('hand').innerHTML='';$('st').classList.add('hide');$('nx').classList.add('hide');
+ if(G.phase==='pick'){const P=G.order[G.i];$('turnH').innerHTML=`輪到 ${nz(P.n)},選 1 張行動卡`;
+  G.cur.forEach(id=>{const c=CARDS[id],w=dry(P,id),b=document.createElement('button');b.className='act';b.innerHTML=`<b>${c.t}</b><br>${c.d}${w?`<br><span class="warn">⚠️ ${esc(w.split('失敗:')[1])}</span>`:''}`;b.onclick=()=>pick(id);$('hand').appendChild(b)})}
+ else if(G.phase==='settle'){$('turnH').textContent='所有人都選好了';$('st').classList.remove('hide')}
+ else{$('turnH').textContent='今日結算完成';$('nx').classList.remove('hide')}
+}
+let lock=false;
+function pick(id){if(lock)return;lock=true;play(G,G.order[G.i],id,G.log);G.i++;if(G.i>=G.order.length)G.phase='settle';else G.cur=hand();render();lock=false}
+$('st').onclick=()=>{settle(G,G.ev,G.log);if(!G.ps.some(p=>p.alive)||G.day>=R)return finish();G.phase='next';render()};
+$('nx').onclick=startDay;
+function finish(){show('end');const A=G.ps.filter(p=>p.alive).sort((a,b)=>score(b)-score(a)),D=G.ps.filter(p=>!p.alive).sort((a,b)=>b.died-a.died);
+ $('et').textContent=!A.length?'💀 全員覆沒':A.length===G.ps.length?'🎉 全員生還!':`🎉 ${A.length} 人生還,${D.length} 人犧牲`;
+ $('er').innerHTML=A.map((p,i)=>`<div class="card" style="margin:6px 0">${i?'':'👑 '}<b>${nz(p.n)}</b> 存活 · 得分 ${score(p)}(❤️${p.hp} 🍖${p.food} 🪵${p.wood} 庇護所 Lv.${p.lv})</div>`).join('')+D.map(p=>`<div class="card dead" style="margin:6px 0">💀 ${nz(p.n)} 第 ${p.died} 天倒下</div>`).join('')}
+drawNames();
+
+}
+
 /* ===== 多人連線：Supabase Realtime（Broadcast + Presence，訪客匿名，不需登入）===== */
 var roomApi=null,myId=(window.crypto&&crypto.randomUUID?crypto.randomUUID():"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 function getRoom(cb){
@@ -594,48 +725,57 @@ function noRoom(e){var C=window.GAME_CONFIG||{},why=window.__roomErr||(e&&e.mess
 function host(){
   getRoom(function(R){
     if(!R){noRoom();return}
-    var code=String(Math.floor(1000+Math.random()*9000)),rm=null,players={},live={},mode="lobby",scores={},cur=null,answers={},n=0,unsub=[],ended=false;
+    var code=String(Math.floor(1000+Math.random()*9000)),rm=null,players={},live={},mode="lobby",scores={},corr={},cfg={n:10,pt:1,bonus:1,b:[3,2,1]},qt0=0,qTot=10,cur=null,answers={},n=0,unsub=[],ended=false;
     cleanup=function(){unsub.forEach(function(f){try{f()}catch(e){}});if(rm)try{rm.leave()}catch(e){}};
     R.join("g"+code).then(function(r){rm=r;
       unsub.push(rm.onPeers(function(ch){
         players={};live={};(ch.peers||[]).forEach(function(p){var pr=p.presence||{};if(pr.role==="p"&&pr.name){players[p.peer]=pr.name;live[p.peer]=1}});
         if(mode==="lobby")lobby()}));
       unsub.push(rm.on("ans",function(m){if(!cur||!m.data||m.data.n!==n||answers[m.peer]!==undefined)return;
-        answers[m.peer]={c:m.data.c,name:players[m.peer]||m.data.name||"?"};
+        answers[m.peer]={c:m.data.c,name:players[m.peer]||m.data.name||"?",t:Date.now()};
         var cnt=Object.keys(answers).length;var e=$("#cnt");if(e)e.textContent=cnt+" / "+Object.keys(players).length+" 已作答"}));
       lobby();
     }).catch(function(e){noRoom(e)});
     function lobby(){
       var names=Object.keys(players).map(function(k){return players[k]});
-      app.innerHTML=topbar("👩‍🏫 主持")+'<p class="msg">請學生輸入房號</p><div class="big">'+code+'</div><div class="card"><b>已加入（'+names.length+'）</b><br>'+names.map(function(x){return '<span class="pill">'+esc(x)+'</span>'}).join("")+'</div><div class="row"><button id="start" '+(names.length&&bank.length>=4?"":"disabled")+'>選擇題搶答（10 題）</button><button id="sstart" '+(names.length&&bank.length>=4?"":"disabled")+'>🐍 蛇棋</button></div>'+(bank.length<4?'<p class="msg">題庫至少要 4 題</p>':"");
-      bindBack();$("#start").onclick=function(){mode="quiz";scores={};n=0;ask(shuf(bank).slice(0,10).map(mk))};$("#sstart").onclick=startSnake;
+      app.innerHTML=topbar("👩‍🏫 主持")+'<p class="msg">請學生輸入房號</p><div class="big">'+code+'</div><div class="card"><b>已加入（'+names.length+'）</b><br>'+names.map(function(x){return '<span class="pill">'+esc(x)+'</span>'}).join("")+'</div><div class="card" style="margin-top:10px"><b>選擇題搶答設定</b><div class="row" style="margin-top:8px"><label style="flex:1">題數（最多 '+bank.length+'）<input id="cq" type="number" min="1" max="50" value="'+cfg.n+'"></label><label style="flex:1">每題分數<input id="cp" type="number" min="1" max="100" value="'+cfg.pt+'"></label></div><label style="display:flex;align-items:center;gap:8px;margin:10px 0"><input id="cb" type="checkbox" style="width:auto"'+(cfg.bonus?" checked":"")+'>前三名最快答對加分</label><div class="row"><label style="flex:1">第 1 名 +<input id="cb1" type="number" min="0" max="100" value="'+cfg.b[0]+'"></label><label style="flex:1">第 2 名 +<input id="cb2" type="number" min="0" max="100" value="'+cfg.b[1]+'"></label><label style="flex:1">第 3 名 +<input id="cb3" type="number" min="0" max="100" value="'+cfg.b[2]+'"></label></div></div><div class="row" style="margin-top:10px"><button id="start" '+(names.length&&bank.length>=4?"":"disabled")+'>選擇題搶答</button><button id="sstart" '+(names.length&&bank.length>=4?"":"disabled")+'>🐍 蛇棋</button></div>'+(bank.length<4?'<p class="msg">題庫至少要 4 題</p>':"");
+      bindBack();
+      function rd(){var v=function(id,d,mn,mx){var x=parseInt($(id).value);return isFinite(x)?Math.max(mn,Math.min(mx,x)):d};cfg.n=v("#cq",10,1,50);cfg.pt=v("#cp",1,1,100);cfg.bonus=$("#cb").checked?1:0;cfg.b=[v("#cb1",3,0,100),v("#cb2",2,0,100),v("#cb3",1,0,100)]}
+      ["#cq","#cp","#cb","#cb1","#cb2","#cb3"].forEach(function(id){$(id).onchange=rd});
+      $("#start").onclick=function(){rd();mode="quiz";scores={};corr={};n=0;qTot=Math.min(cfg.n,bank.length);ask(shuf(bank).slice(0,qTot).map(mk))};$("#sstart").onclick=startSnake;
     }
     function ask(qs){
       if(n>=qs.length){finish();return}
-      cur=qs[n];answers={};
+      cur=qs[n];answers={};qt0=Date.now();
       rm.emit("q",{n:n,q:cur.q,opts:cur.opts,total:qs.length});
-      app.innerHTML=topbar("第 "+(n+1)+" / "+qs.length+" 題")+'<div class="q">'+esc(cur.q)+'</div><p class="msg" id="cnt">0 / '+Object.keys(players).length+' 已作答</p><div class="row"><button id="rev">公布答案</button></div>';
+      app.innerHTML=topbar("第 "+(n+1)+" / "+qs.length+" 題")+'<div class="q">'+esc(cur.q)+'</div><p class="msg" id="cnt">0 / '+Object.keys(players).length+' 已作答</p><div class="row"><button id="rev">公布答案</button></div>'+board();
       bindBack();
       $("#rev").onclick=function(){
-        Object.keys(answers).forEach(function(k){if(answers[k].c===cur.a)scores[answers[k].name]=(scores[answers[k].name]||0)+1});
-        rm.emit("rev",{n:n,a:cur.a,scores:scores});
-        app.innerHTML=topbar("答案")+'<div class="q">'+esc(cur.q)+' → <span style="color:var(--ok)">'+esc(cur.a)+'</span></div>'+board()+'<div class="row"><button id="nx">'+(n+1>=qs.length?"看最終排行":"下一題")+'</button></div>';
+        var okL=Object.keys(answers).filter(function(k){return answers[k].c===cur.a}).sort(function(a,b){return answers[a].t-answers[b].t}),bmap={};
+        okL.forEach(function(k,i){var nm=answers[k].name,add=cfg.pt;if(cfg.bonus&&i<3&&cfg.b[i]>0){add+=cfg.b[i];bmap[nm]=cfg.b[i]}scores[nm]=(scores[nm]||0)+add;corr[nm]=(corr[nm]||0)+1});
+        rm.emit("rev",{n:n,a:cur.a,scores:scores,b:bmap});
+        var bh=(cfg.bonus&&okL.length)?'<p class="msg">⚡ 速度加分：'+okL.slice(0,3).map(function(k,i){return cfg.b[i]>0?["🥇","🥈","🥉"][i]+" "+nz(answers[k].name)+" +"+cfg.b[i]+"（"+((answers[k].t-qt0)/1000).toFixed(1)+" 秒）":""}).filter(Boolean).join("　")+'</p>':"";
+        app.innerHTML=topbar("答案")+'<div class="q">'+esc(cur.q)+' → <span style="color:var(--ok)">'+esc(cur.a)+'</span></div>'+bh+board()+'<div class="row"><button id="nx">'+(n+1>=qs.length?"看最終排行":"下一題")+'</button></div>';
         bindBack();$("#nx").onclick=function(){n++;ask(qs)};
         var wr=Object.keys(answers).filter(function(k){return answers[k].c!==cur.a});
         wr.forEach(function(k){addWrong(answers[k].name,cur.q,cur.a,answers[k].c)});
         if(wr.length){SB.modal('<div style="font-size:28px;font-weight:700;margin:6px 0">❌ 答錯的同學（'+wr.length+'）</div><div class="q" style="font-size:36px">'+esc(cur.q)+'</div><div style="margin-bottom:8px">正確答案：'+nz(cur.a)+'</div>'+wr.map(function(k){return '<div style="padding:4px 0;border-bottom:1px solid var(--line)">'+nz(answers[k].name)+' 選了 '+nz(answers[k].c)+'</div>'}).join("")+'<div class="row" style="margin-top:10px"><button id="wk">繼續</button></div>',"w");$("#wk").onclick=function(){SB.modal()}}
       };
     }
-    function board(){var arr=Object.keys(players).map(function(k){return players[k]});var seen={};arr=arr.filter(function(x){if(seen[x])return false;seen[x]=1;return true});
+    function board(){ // 橫向長條圖：每位學生的分數
+      var arr=[],seen={};Object.keys(players).forEach(function(k){var nm=players[k];if(!seen[nm]){seen[nm]=1;arr.push(nm)}});
+      var col={};arr.forEach(function(nm,i){col[nm]=SB.C[i%14]});
       arr.sort(function(a,b){return(scores[b]||0)-(scores[a]||0)});
-      return '<div class="card"><table>'+arr.map(function(x,i){return '<tr><td>'+(i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1))+'</td><td>'+nz(x)+'</td><td>'+(scores[x]||0)+'</td></tr>'}).join("")+'</table></div>'}
-    function finish(){cur=null;var sn={};Object.keys(players).forEach(function(k){var nm=players[k];if(!sn[nm]){sn[nm]=1;addStat("quiz",nm,scores[nm]||0,10)}});rm.emit("end",{scores:scores});app.innerHTML=topbar("🏆 最終排行")+board()+'<div class="row"><button id="again">再玩一局</button></div>';bindBack();$("#again").onclick=function(){go(host)}}
+      var mx=Math.max(qTot*cfg.pt,1);arr.forEach(function(x){mx=Math.max(mx,scores[x]||0)});
+      return '<div class="card"><b>分數</b>'+arr.map(function(x,i){var v=scores[x]||0;
+        return '<div class="bw"><div class="bn">'+((v&&i===0)?"🥇 ":(v&&i===1)?"🥈 ":(v&&i===2)?"🥉 ":"")+nz(x)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(v/mx*100)+'%;background:'+col[x]+'"></div></div><div class="bv">'+v+'</div></div>'}).join("")+'</div>'}
+    function finish(){cur=null;var sn={};Object.keys(players).forEach(function(k){var nm=players[k];if(!sn[nm]){sn[nm]=1;addStat("quiz",nm,corr[nm]||0,qTot)}});rm.emit("end",{scores:scores});app.innerHTML=topbar("🏆 最終排行")+board()+'<div class="row"><button id="again">再玩一局</button></div>';bindBack();$("#again").onclick=function(){go(host)}}
 
     function startSnake(){
       mode="snake";
       var P=Object.keys(players).map(function(k){return{peer:k,name:players[k],pos:0}}),dup={};
       P.forEach(function(x){dup[x.name]=(dup[x.name]||0)+1;if(dup[x.name]>1)x.name+=dup[x.name]});
-      var c=0,busy=false,over=false,d=0,q=null,qn=0,w="";
+      var c=0,busy=false,over=false,d=0,q=null,qn=0,w="",waitRoll=false;
       app.innerHTML=topbar("🐍 蛇棋（主持）")+SB.ui('<button class="ghost" id="sk">跳過此人</button>');
       bindBack();var tg=SB.draw($("#sv"));
       function sync(skip){SB.show(tg,P,c,over);if(skip)return;rm.emit("sst",{p:P.map(function(x){return[x.peer,x.name,x.pos]}),c:c,o:over?1:0,d:d,w:w})}
@@ -652,18 +792,26 @@ function host(){
         if(mode!=="snake"||over||busy||!q||!m.data||m.data.g!=="s"||m.data.n!==qn||m.peer!==P[c].peer)return;
         busy=true;var ok=m.data.c===q.a,qa=q.a,qt=q.q,who=P[c].name;q=null;
         rm.emit("sr",{n:qn,ok:ok?1:0,a:qa});
-        if(ok){SB.modal(SB.res(true,qa),"r");setTimeout(roll,900)}
-        else{addWrong(who,qt,m.data.c,qa);SB.modal(SB.wrongH(who,qt,m.data.c,qa),"w");$("#wk").onclick=function(){SB.modal();next()}}
+        if(ok)okWait(who,qa);
+        else{addWrong(who,qt,m.data.c,qa);SB.modal(SB.wrongH(who,qt,m.data.c,qa),"w");
+          $("#wk").onclick=function(){SB.modal();next()};
+          $("#wok").onclick=function(){rm.emit("sr",{n:qn,ok:1,t:1,a:qa});okWait(who,qa)}}
       }));
+      function okWait(who,qa){ // 等學生按「骰骰子」（老師也可代按）
+        waitRoll=true;
+        SB.modal(SB.res(true,qa)+'<div style="color:var(--mute);margin:6px 0">等 '+nz(who)+' 按「骰骰子」…</div><div class="row"><button class="ghost" id="rdo">代他骰骰子</button></div>',"r");
+        $("#rdo").onclick=function(){if(waitRoll){waitRoll=false;roll()}}}
+      unsub.push(rm.on("rl",function(m){if(mode!=="snake"||!waitRoll||over||!m.data||m.data.n!==qn||m.peer!==P[c].peer)return;waitRoll=false;roll()}));
       async function roll(){
-        var pl=P[c],dd=1+Math.floor(Math.random()*6);d=dd;sync();SB.modal(SB.diceH(pl.name,dd),"d");
+        waitRoll=false;var pl=P[c],dd=1+Math.floor(Math.random()*6);d=dd;sync();SB.modal(SB.diceH(pl.name,dd),"d");SB.rollDice(dd,1100);
+        await new Promise(function(r){setTimeout(r,1250)});
         var stp=0,won=await SB.move(pl,dd,function(m){sync(!!(++stp%4));var e=document.getElementById("sdm");if(e&&m)e.textContent=m});
         d=0;
         if(won){over=true;w=pl.name;P.forEach(function(x){addStat("snake",x.name,x===pl?1:0,1)});sync();SB.modal(SB.winH(pl.name,true),"w");$("#ag").onclick=function(){go(host)};return}
         sync();SB.modal();
         if(dd===6)setTimeout(turn,1500);else next();
       }
-      $("#sk").onclick=function(){if(over||busy)return;busy=true;q=null;qn++;SB.modal();next()};
+      $("#sk").onclick=function(){if(over||(busy&&!waitRoll))return;waitRoll=false;busy=true;q=null;qn++;SB.modal();next()};
       sync();turn();
     }
   });
@@ -683,7 +831,7 @@ function join(){
         unsub.push(rm.on("q",function(m){var d=m.data;if(!d||!d.opts)return;
           app.innerHTML=topbar("第 "+(d.n+1)+" / "+d.total+" 題・"+esc(myName))+'<div class="q">'+esc(d.q)+'</div><div class="opts">'+d.opts.map(function(o){return '<button data-o="'+esc(o)+'">'+esc(o)+'</button>'}).join("")+'</div>';bindBack();
           app.querySelectorAll("[data-o]").forEach(function(b){b.onclick=function(){app.querySelectorAll("[data-o]").forEach(function(x){x.disabled=true});b.style.borderColor="var(--pri)";rm.emit("ans",{n:d.n,c:b.dataset.o,name:myName}).catch(function(){});}});}));
-        unsub.push(rm.on("rev",function(m){var d=m.data;if(!d)return;var s=(d.scores&&d.scores[myName])||0;wait("正確答案：<b style='color:var(--ok)'>"+nz(d.a)+"</b><br>你的分數：<b>"+s+"</b>")}));
+        unsub.push(rm.on("rev",function(m){var d=m.data;if(!d)return;var s=(d.scores&&d.scores[myName])||0,b=(d.b&&d.b[myName])||0;wait("正確答案：<b style='color:var(--ok)'>"+nz(d.a)+"</b><br>你的分數：<b>"+s+"</b>"+(b?"<br>⚡ 速度加分 +"+b:""))}));
         unsub.push(rm.on("end",function(m){var d=m.data||{},sc=d.scores||{},arr=Object.keys(sc).sort(function(a,b){return sc[b]-sc[a]});var rank=arr.indexOf(myName)+1;wait("遊戲結束！<br>你的分數：<b>"+(sc[myName]||0)+"</b>"+(rank?"（第 "+rank+" 名）":""))}));
       
         var myPeer=null,tg=null;
@@ -693,14 +841,16 @@ function join(){
           var ps=d.p.map(function(a){return{peer:a[0],name:a[1],pos:a[2]}});
           SB.show(tg,ps,d.c,!!d.o);
           if(d.o){SB.mkey="";SB.modal(SB.winH(d.w,false),"w")}
-          else if(d.d>0&&ps[d.c]){var key=ps[d.c].name+d.d;if(SB.mkey!==key){SB.mkey=key;SB.modal(SB.diceH(ps[d.c].name,d.d),"d")}}
+          else if(d.d>0&&ps[d.c]){var key=ps[d.c].name+d.d;if(SB.mkey!==key){SB.mkey=key;SB.modal(SB.diceH(ps[d.c].name,d.d),"d");SB.rollDice(d.d,1100)}}
           else{SB.mkey="";if(SB.mk==="d")SB.modal()}}));
         unsub.push(rm.on("sq",function(m){var d=m.data;if(!d||!d.opts)return;sUI();
-          if(!(d.who===myPeer||(!myPeer&&d.name===myName))){if(SB.mk==="q"||SB.mk==="r")SB.modal();return}
+          if(!(d.who===myPeer||(!myPeer&&d.name===myName))){if(SB.mk==="q"||SB.mk==="r"||SB.mk==="r2")SB.modal();return}
           SB.modal(SB.qH(d.name,d,false),"q");
           document.querySelectorAll("#sm [data-o]").forEach(function(b){b.onclick=function(){document.querySelectorAll("#sm [data-o]").forEach(function(x){x.disabled=true});b.style.borderColor="var(--pri)";rm.emit("ans",{g:"s",n:d.n,c:b.dataset.o}).catch(function(){})}})}));
-        unsub.push(rm.on("sr",function(m){var d=m.data;if(!d||SB.mk!=="q")return;
-          SB.modal(SB.res(d.ok,d.a),"r");setTimeout(function(){if(SB.mk==="r")SB.modal()},1500)}));
+        unsub.push(rm.on("sr",function(m){var d=m.data;if(!d||(SB.mk!=="q"&&SB.mk!=="r"))return;
+          if(d.ok){SB.modal('<div style="font-size:32px;font-weight:700;margin:8px 0">'+(d.t?"✅ 老師判定答對":"✅ 答對了！")+'</div><button id="rb" style="font-size:28px;padding:16px 28px">🎲 骰骰子</button>',"r2");
+            $("#rb").onclick=function(){this.disabled=true;this.textContent="骰子滾動中…";rm.emit("rl",{n:d.n}).catch(function(){})}}
+          else SB.modal(SB.res(false,d.a)+'<div style="color:var(--mute);margin-top:8px">等老師處理…</div>',"r")}));
       }).catch(function(e){noRoom(e)});
     };
   });
@@ -710,7 +860,7 @@ function join(){
 /* ===== 直式注音（依教育部《國語注音符號手冊》：注音在字右側，輕聲點在上、調號在右）===== */
 var zon=ls("zy_v1")!=="0",ZW={},ZC={},ZMAX=1,ZT={"2":"\u02ca","3":"\u02c7","4":"\u02cb"};
 function zyFix(v){var q="",t="";if(v.charAt(0)==="0"){q="\u02d9";v=v.slice(1)}var l=v.charAt(v.length-1);if(ZT[l]){t=ZT[l];v=v.slice(0,-1)}return[q,v,t]}
-"一:ㄧ;上:ㄕㄤ4;下:ㄒㄧㄚ4;並:ㄅㄧㄥ4;中:ㄓㄨㄥ;主:ㄓㄨ3;亂:ㄌㄨㄢ4;了:0ㄌㄜ;人:ㄖㄣ2;仍:ㄖㄥ2;代:ㄉㄞ4;位:ㄨㄟ4;作:ㄗㄨㄛ4;你:ㄋㄧ3;使:ㄕ3;來:ㄌㄞ2;例:ㄌㄧ4;個:ㄍㄜ4;停:ㄊㄧㄥ2;先:ㄒㄧㄢ;入:ㄖㄨ4;全:ㄑㄩㄢ2;公:ㄍㄨㄥ;共:ㄍㄨㄥ4;其:ㄑㄧ2;再:ㄗㄞ4;出:ㄔㄨ;分:ㄈㄣ;切:ㄑㄧㄝ;刪:ㄕㄢ;到:ㄉㄠ4;則:ㄗㄜ2;前:ㄑㄧㄢ2;剛:ㄍㄤ;剩:ㄕㄥ4;功:ㄍㄨㄥ;加:ㄐㄧㄚ;勝:ㄕㄥ4;匯:ㄏㄨㄟ4;原:ㄩㄢ2;受:ㄕㄡ4;口:ㄎㄡ3;只:ㄓ3;可:ㄎㄜ3;台:ㄊㄞ2;同:ㄊㄨㄥ2;名:ㄇㄧㄥ2;和:ㄏㄜ2;咬:ㄧㄠ3;單:ㄉㄢ;嗎:0ㄇㄚ;回:ㄏㄨㄟ2;在:ㄗㄞ4;場:ㄔㄤ3;增:ㄗㄥ;多:ㄉㄨㄛ;大:ㄉㄚ4;太:ㄊㄞ4;失:ㄕ;好:ㄏㄠ3;如:ㄖㄨ2;始:ㄕ3;媽:ㄇㄚ;子:ㄗ3;字:ㄗ4;學:ㄒㄩㄝ2;定:ㄉㄧㄥ4;家:ㄐㄧㄚ;對:ㄉㄨㄟ4;少:ㄕㄠ3;就:ㄐㄧㄡ4;局:ㄐㄩ2;山:ㄕㄢ;已:ㄧ3;布:ㄅㄨ4;師:ㄕ;平:ㄆㄧㄥ2;庫:ㄎㄨ4;往:ㄨㄤ3;後:ㄏㄡ4;得:ㄉㄜ2;成:ㄔㄥ2;戰:ㄓㄢ4;戲:ㄒㄧ4;房:ㄈㄤ2;所:ㄙㄨㄛ3;才:ㄘㄞ2;批:ㄆㄧ;把:ㄅㄚ3;折:ㄓㄜ2;抵:ㄉㄧ3;持:ㄔ2;挑:ㄊㄧㄠ3;排:ㄆㄞ2;換:ㄏㄨㄢ4;搶:ㄑㄧㄤ3;擇:ㄗㄜ2;擋:ㄉㄤ3;擲:ㄓ2;敗:ㄅㄞ4;數:ㄕㄨ4;新:ㄒㄧㄣ;日:ㄖ4;是:ㄕ4;最:ㄗㄨㄟ4;會:ㄏㄨㄟ4;月:ㄩㄝ4;有:ㄧㄡ3;本:ㄅㄣ3;束:ㄕㄨ4;板:ㄅㄢ3;果:ㄍㄨㄛ3;查:ㄔㄚ2;格:ㄍㄜ2;案:ㄢ4;梯:ㄊㄧ;棋:ㄑㄧ2;棒:ㄅㄤ4;機:ㄐㄧ;次:ㄘ4;正:ㄓㄥ4;此:ㄘ3;步:ㄅㄨ4;每:ㄇㄟ3;水:ㄕㄨㄟ3;沒:ㄇㄟ2;油:ㄧㄡ2;法:ㄈㄚ3;流:ㄌㄧㄡ2;消:ㄒㄧㄠ;清:ㄑㄧㄥ;滑:ㄏㄨㄚ2;火:ㄏㄨㄛ3;無:ㄨ2;爬:ㄆㄚ2;牌:ㄆㄞ2;獲:ㄏㄨㄛ4;玩:ㄨㄢ2;現:ㄒㄧㄢ4;理:ㄌㄧ3;生:ㄕㄥ;產:ㄔㄢ3;用:ㄩㄥ4;畫:ㄏㄨㄚ4;疊:ㄉㄧㄝ2;登:ㄉㄥ;的:0ㄉㄜ;盤:ㄆㄢ2;目:ㄇㄨ4;盾:ㄉㄨㄣ4;看:ㄎㄢ4;確:ㄑㄩㄝ4;碼:ㄇㄚ3;稱:ㄔㄥ;第:ㄉㄧ4;等:ㄉㄥ3;答:ㄉㄚ2;管:ㄍㄨㄢ3;紀:ㄐㄧ4;終:ㄓㄨㄥ;結:ㄐㄧㄝ2;統:ㄊㄨㄥ3;線:ㄒㄧㄢ4;績:ㄐㄧ4;繼:ㄐㄧ4;續:ㄒㄩ4;習:ㄒㄧ2;翻:ㄈㄢ;老:ㄌㄠ3;耗:ㄏㄠ4;能:ㄋㄥ2;自:ㄗ4;至:ㄓ4;號:ㄏㄠ4;蛇:ㄕㄜ2;行:ㄒㄧㄥ2;被:ㄅㄟ4;要:ㄧㄠ4;規:ㄍㄨㄟ;計:ㄐㄧ4;設:ㄕㄜ4;認:ㄖㄣ4;請:ㄑㄧㄥ3;護:ㄏㄨ4;讓:ㄖㄤ4;走:ㄗㄡ3;起:ㄑㄧ3;超:ㄔㄠ;跳:ㄊㄧㄠ4;踩:ㄘㄞ3;身:ㄕㄣ;輪:ㄌㄨㄣ2;輸:ㄕㄨ;返:ㄈㄢ3;退:ㄊㄨㄟ4;這:ㄓㄜ4;連:ㄌㄧㄢ2;進:ㄐㄧㄣ4;遇:ㄩ4;遊:ㄧㄡ2;過:ㄍㄨㄛ4;達:ㄉㄚ2;選:ㄒㄩㄢ3;邀:ㄧㄠ;還:ㄏㄞ2;部:ㄅㄨ4;配:ㄆㄟ4;重:ㄓㄨㄥ4;錄:ㄌㄨ4;錯:ㄘㄨㄛ4;開:ㄎㄞ;間:ㄐㄧㄢ;限:ㄒㄧㄢ4;除:ㄔㄨ2;需:ㄒㄩ;面:ㄇㄧㄢ4;頁:ㄧㄝ4;預:ㄩ4;題:ㄊㄧ2;餘:ㄩ2;首:ㄕㄡ3;骰:ㄊㄡ2;鬥:ㄉㄡ4;點:ㄉㄧㄢ3;注:ㄓㄨ4;音:ㄧㄣ;關:ㄍㄨㄢ;誤:ㄨ4;項:ㄒㄧㄤ4;三:ㄙㄢ;欄:ㄌㄢ2;空:ㄎㄨㄥ;白:ㄅㄞ2;時:ㄕ2;動:ㄉㄨㄥ4;他:ㄊㄚ;補:ㄅㄨ3;四:ㄙ4;不:ㄅㄨ4;也:ㄧㄝ3;事:ㄕ4;些:ㄒㄧㄝ;件:ㄐㄧㄢ4;伐:ㄈㄚ2;但:ㄉㄢ4;住:ㄓㄨ4;值:ㄓ2;備:ㄅㄟ4;傳:ㄔㄨㄢ2;傷:ㄕㄤ;優:ㄧㄡ;充:ㄔㄨㄥ;冒:ㄇㄠ4;冰:ㄅㄧㄥ;冷:ㄌㄥ3;別:ㄅㄧㄝ2;利:ㄌㄧ4;削:ㄒㄩㄝ;劇:ㄐㄩ4;化:ㄏㄨㄚ4;區:ㄑㄩ;升:ㄕㄥ;卡:ㄎㄚ3;危:ㄨㄟ;去:ㄑㄩ4;取:ㄑㄩ3;叮:ㄉㄧㄥ;合:ㄏㄜ2;否:ㄈㄡ3;吹:ㄔㄨㄟ;命:ㄇㄧㄥ4;固:ㄍㄨ4;圖:ㄊㄨ2;地:ㄉㄧ4;型:ㄒㄧㄥ2;域:ㄩ4;堅:ㄐㄧㄢ;填:ㄊㄧㄢ2;壞:ㄏㄨㄞ4;夜:ㄧㄝ4;天:ㄊㄧㄢ;孔:ㄎㄨㄥ3;存:ㄘㄨㄣ2;安:ㄢ;害:ㄏㄞ4;富:ㄈㄨ4;寒:ㄏㄢ2;尋:ㄒㄩㄣ2;小:ㄒㄧㄠ3;尖:ㄐㄧㄢ;尚:ㄕㄤ4;屋:ㄨ;岸:ㄢ4;島:ㄉㄠ3;帶:ㄉㄞ4;度:ㄉㄨ4;建:ㄐㄧㄢ4;很:ㄏㄣ3;徑:ㄐㄧㄥ4;急:ㄐㄧ2;情:ㄑㄧㄥ2;打:ㄉㄚ3;扣:ㄎㄡ4;找:ㄓㄠ3;拾:ㄕ2;捉:ㄓㄨㄛ;捕:ㄅㄨ3;採:ㄘㄞ3;探:ㄊㄢ4;描:ㄇㄧㄠ2;損:ㄙㄨㄣ3;搭:ㄉㄚ;摘:ㄓㄞ;撈:ㄌㄠ;撐:ㄔㄥ;撿:ㄐㄧㄢ3;擊:ㄐㄧ;收:ㄕㄡ;效:ㄒㄧㄠ4;救:ㄐㄧㄡ4;料:ㄌㄧㄠ4;於:ㄩ2;易:ㄧ4;晚:ㄨㄢ3;晴:ㄑㄧㄥ2;暴:ㄅㄠ4;朗:ㄌㄤ3;木:ㄇㄨ4;未:ㄨㄟ4;材:ㄘㄞ2;東:ㄉㄨㄥ;林:ㄌㄧㄣ2;枝:ㄓ;條:ㄊㄧㄠ2;棚:ㄆㄥ2;森:ㄙㄣ;標:ㄅㄧㄠ;樹:ㄕㄨ4;殊:ㄕㄨ;毒:ㄉㄨ2;氣:ㄑㄧ4;求:ㄑㄧㄡ2;沖:ㄔㄨㄥ;沙:ㄕㄚ;沿:ㄧㄢ2;活:ㄏㄨㄛ2;浪:ㄌㄤ4;海:ㄏㄞ3;淋:ㄌㄧㄣ2;深:ㄕㄣ;測:ㄘㄜ4;源:ㄩㄢ2;準:ㄓㄨㄣ3;溫:ㄨㄣ;漂:ㄆㄧㄠ;漫:ㄇㄢ4;潮:ㄔㄠ2;濕:ㄕ;濱:ㄅㄧㄣ;灘:ㄊㄢ;為:ㄨㄟ2;烈:ㄌㄧㄝ4;熬:ㄠ2;燃:ㄖㄢ2;營:ㄧㄥ2;片:ㄆㄧㄢ4;物:ㄨ4;特:ㄊㄜ4;猛:ㄇㄥ3;獸:ㄕㄡ4;由:ㄧㄡ2;留:ㄌㄧㄡ2;略:ㄌㄩㄝ4;發:ㄈㄚ;知:ㄓ;砍:ㄎㄢ3;符:ㄈㄨ2;策:ㄘㄜ4;算:ㄙㄨㄢ4;篝:ㄍㄡ;簡:ㄐㄧㄢ3;糧:ㄌㄧㄤ2;級:ㄐㄧ2;索:ㄙㄨㄛ3;緊:ㄐㄧㄣ3;緣:ㄩㄢ2;編:ㄅㄧㄢ;群:ㄑㄩㄣ2;腐:ㄈㄨ3;與:ㄩ3;若:ㄖㄨㄛ4;草:ㄘㄠ3;著:0ㄓㄜ;藻:ㄗㄠ3;處:ㄔㄨ4;蛋:ㄉㄢ4;蟲:ㄔㄨㄥ2;衝:ㄔㄨㄥ;衡:ㄏㄥ2;裡:ㄌㄧ3;製:ㄓ4;襲:ㄒㄧ2;西:ㄒㄧ;訊:ㄒㄩㄣ4;記:ㄐㄧ4;許:ㄒㄩ3;試:ㄕ4;變:ㄅㄧㄢ4;豐:ㄈㄥ;豬:ㄓㄨ;貝:ㄅㄟ4;負:ㄈㄨ4;資:ㄗ;足:ㄗㄨ2;路:ㄌㄨ4;輯:ㄐㄧ2;述:ㄕㄨ4;造:ㄗㄠ4;遜:ㄒㄩㄣ4;避:ㄅㄧ4;邊:ㄅㄧㄢ;野:ㄧㄝ3;量:ㄌㄧㄤ4;銷:ㄒㄧㄠ;長:ㄔㄤ2;降:ㄐㄧㄤ4;險:ㄒㄧㄢ3;集:ㄐㄧ2;難:ㄋㄢ2;雨:ㄩ3;靜:ㄐㄧㄥ4;靠:ㄎㄠ4;頭:ㄊㄡ2;類:ㄌㄟ4;風:ㄈㄥ;食:ㄕ2;香:ㄒㄧㄤ;高:ㄍㄠ;魚:ㄩ2;魯:ㄌㄨ3;鳥:ㄋㄧㄠ3;木頭:ㄇㄨ4 0ㄊㄡ;避難:ㄅㄧ4 ㄋㄢ4;部分:ㄅㄨ4 ㄈㄣ4;網:ㄨㄤ3;站:ㄓㄢ4;檢:ㄐㄧㄢ3;或:ㄏㄨㄛ4;骰子:ㄊㄡ2 0ㄗ;梯子:ㄊㄧ 0ㄗ;學生:ㄒㄩㄝ2 ㄕㄥ;老師:ㄌㄠ3 ㄕ;身分:ㄕㄣ ㄈㄣ4;切換:ㄑㄧㄝ ㄏㄨㄢ4;還原:ㄏㄨㄢ2 ㄩㄢ2;重新:ㄔㄨㄥ2 ㄒㄧㄣ;每行:ㄇㄟ3 ㄏㄤ2;排行:ㄆㄞ2 ㄏㄤ2;往回數:ㄨㄤ3 ㄏㄨㄟ2 ㄕㄨ3".split(";").forEach(function(e){var i=e.indexOf(":");if(i<1)return;var k=e.slice(0,i),v=e.slice(i+1).split(" ").map(zyFix);if(k.length>1){ZW[k]=v;ZMAX=Math.max(ZMAX,k.length)}else ZC[k]=v[0]});
+"一:ㄧ;上:ㄕㄤ4;下:ㄒㄧㄚ4;並:ㄅㄧㄥ4;中:ㄓㄨㄥ;主:ㄓㄨ3;亂:ㄌㄨㄢ4;了:0ㄌㄜ;人:ㄖㄣ2;仍:ㄖㄥ2;代:ㄉㄞ4;位:ㄨㄟ4;作:ㄗㄨㄛ4;你:ㄋㄧ3;使:ㄕ3;來:ㄌㄞ2;例:ㄌㄧ4;個:ㄍㄜ4;停:ㄊㄧㄥ2;先:ㄒㄧㄢ;入:ㄖㄨ4;全:ㄑㄩㄢ2;公:ㄍㄨㄥ;共:ㄍㄨㄥ4;其:ㄑㄧ2;再:ㄗㄞ4;出:ㄔㄨ;分:ㄈㄣ;切:ㄑㄧㄝ;刪:ㄕㄢ;到:ㄉㄠ4;則:ㄗㄜ2;前:ㄑㄧㄢ2;剛:ㄍㄤ;剩:ㄕㄥ4;功:ㄍㄨㄥ;加:ㄐㄧㄚ;勝:ㄕㄥ4;匯:ㄏㄨㄟ4;原:ㄩㄢ2;受:ㄕㄡ4;口:ㄎㄡ3;只:ㄓ3;可:ㄎㄜ3;台:ㄊㄞ2;同:ㄊㄨㄥ2;名:ㄇㄧㄥ2;和:ㄏㄜ2;咬:ㄧㄠ3;單:ㄉㄢ;嗎:0ㄇㄚ;回:ㄏㄨㄟ2;在:ㄗㄞ4;場:ㄔㄤ3;增:ㄗㄥ;多:ㄉㄨㄛ;大:ㄉㄚ4;太:ㄊㄞ4;失:ㄕ;好:ㄏㄠ3;如:ㄖㄨ2;始:ㄕ3;媽:ㄇㄚ;子:ㄗ3;字:ㄗ4;學:ㄒㄩㄝ2;定:ㄉㄧㄥ4;家:ㄐㄧㄚ;對:ㄉㄨㄟ4;少:ㄕㄠ3;就:ㄐㄧㄡ4;局:ㄐㄩ2;山:ㄕㄢ;已:ㄧ3;布:ㄅㄨ4;師:ㄕ;平:ㄆㄧㄥ2;庫:ㄎㄨ4;往:ㄨㄤ3;後:ㄏㄡ4;得:ㄉㄜ2;成:ㄔㄥ2;戰:ㄓㄢ4;戲:ㄒㄧ4;房:ㄈㄤ2;所:ㄙㄨㄛ3;才:ㄘㄞ2;批:ㄆㄧ;把:ㄅㄚ3;折:ㄓㄜ2;抵:ㄉㄧ3;持:ㄔ2;挑:ㄊㄧㄠ3;排:ㄆㄞ2;換:ㄏㄨㄢ4;搶:ㄑㄧㄤ3;擇:ㄗㄜ2;擋:ㄉㄤ3;擲:ㄓ2;敗:ㄅㄞ4;數:ㄕㄨ4;新:ㄒㄧㄣ;日:ㄖ4;是:ㄕ4;最:ㄗㄨㄟ4;會:ㄏㄨㄟ4;月:ㄩㄝ4;有:ㄧㄡ3;本:ㄅㄣ3;束:ㄕㄨ4;板:ㄅㄢ3;果:ㄍㄨㄛ3;查:ㄔㄚ2;格:ㄍㄜ2;案:ㄢ4;梯:ㄊㄧ;棋:ㄑㄧ2;棒:ㄅㄤ4;機:ㄐㄧ;次:ㄘ4;正:ㄓㄥ4;此:ㄘ3;步:ㄅㄨ4;每:ㄇㄟ3;水:ㄕㄨㄟ3;沒:ㄇㄟ2;油:ㄧㄡ2;法:ㄈㄚ3;流:ㄌㄧㄡ2;消:ㄒㄧㄠ;清:ㄑㄧㄥ;滑:ㄏㄨㄚ2;火:ㄏㄨㄛ3;無:ㄨ2;爬:ㄆㄚ2;牌:ㄆㄞ2;獲:ㄏㄨㄛ4;玩:ㄨㄢ2;現:ㄒㄧㄢ4;理:ㄌㄧ3;生:ㄕㄥ;產:ㄔㄢ3;用:ㄩㄥ4;畫:ㄏㄨㄚ4;疊:ㄉㄧㄝ2;登:ㄉㄥ;的:0ㄉㄜ;盤:ㄆㄢ2;目:ㄇㄨ4;盾:ㄉㄨㄣ4;看:ㄎㄢ4;確:ㄑㄩㄝ4;碼:ㄇㄚ3;稱:ㄔㄥ;第:ㄉㄧ4;等:ㄉㄥ3;答:ㄉㄚ2;管:ㄍㄨㄢ3;紀:ㄐㄧ4;終:ㄓㄨㄥ;結:ㄐㄧㄝ2;統:ㄊㄨㄥ3;線:ㄒㄧㄢ4;績:ㄐㄧ4;繼:ㄐㄧ4;續:ㄒㄩ4;習:ㄒㄧ2;翻:ㄈㄢ;老:ㄌㄠ3;耗:ㄏㄠ4;能:ㄋㄥ2;自:ㄗ4;至:ㄓ4;號:ㄏㄠ4;蛇:ㄕㄜ2;行:ㄒㄧㄥ2;被:ㄅㄟ4;要:ㄧㄠ4;規:ㄍㄨㄟ;計:ㄐㄧ4;設:ㄕㄜ4;認:ㄖㄣ4;請:ㄑㄧㄥ3;護:ㄏㄨ4;讓:ㄖㄤ4;走:ㄗㄡ3;起:ㄑㄧ3;超:ㄔㄠ;跳:ㄊㄧㄠ4;踩:ㄘㄞ3;身:ㄕㄣ;輪:ㄌㄨㄣ2;輸:ㄕㄨ;返:ㄈㄢ3;退:ㄊㄨㄟ4;這:ㄓㄜ4;連:ㄌㄧㄢ2;進:ㄐㄧㄣ4;遇:ㄩ4;遊:ㄧㄡ2;過:ㄍㄨㄛ4;達:ㄉㄚ2;選:ㄒㄩㄢ3;邀:ㄧㄠ;還:ㄏㄞ2;部:ㄅㄨ4;配:ㄆㄟ4;重:ㄓㄨㄥ4;錄:ㄌㄨ4;錯:ㄘㄨㄛ4;開:ㄎㄞ;間:ㄐㄧㄢ;限:ㄒㄧㄢ4;除:ㄔㄨ2;需:ㄒㄩ;面:ㄇㄧㄢ4;頁:ㄧㄝ4;預:ㄩ4;題:ㄊㄧ2;餘:ㄩ2;首:ㄕㄡ3;骰:ㄊㄡ2;鬥:ㄉㄡ4;點:ㄉㄧㄢ3;注:ㄓㄨ4;音:ㄧㄣ;關:ㄍㄨㄢ;誤:ㄨ4;項:ㄒㄧㄤ4;三:ㄙㄢ;欄:ㄌㄢ2;空:ㄎㄨㄥ;白:ㄅㄞ2;時:ㄕ2;動:ㄉㄨㄥ4;他:ㄊㄚ;補:ㄅㄨ3;四:ㄙ4;不:ㄅㄨ4;也:ㄧㄝ3;事:ㄕ4;些:ㄒㄧㄝ;件:ㄐㄧㄢ4;伐:ㄈㄚ2;但:ㄉㄢ4;住:ㄓㄨ4;值:ㄓ2;備:ㄅㄟ4;傳:ㄔㄨㄢ2;傷:ㄕㄤ;優:ㄧㄡ;充:ㄔㄨㄥ;冒:ㄇㄠ4;冰:ㄅㄧㄥ;冷:ㄌㄥ3;別:ㄅㄧㄝ2;利:ㄌㄧ4;削:ㄒㄩㄝ;劇:ㄐㄩ4;化:ㄏㄨㄚ4;區:ㄑㄩ;升:ㄕㄥ;卡:ㄎㄚ3;危:ㄨㄟ;去:ㄑㄩ4;取:ㄑㄩ3;叮:ㄉㄧㄥ;合:ㄏㄜ2;否:ㄈㄡ3;吹:ㄔㄨㄟ;命:ㄇㄧㄥ4;固:ㄍㄨ4;圖:ㄊㄨ2;地:ㄉㄧ4;型:ㄒㄧㄥ2;域:ㄩ4;堅:ㄐㄧㄢ;填:ㄊㄧㄢ2;壞:ㄏㄨㄞ4;夜:ㄧㄝ4;天:ㄊㄧㄢ;孔:ㄎㄨㄥ3;存:ㄘㄨㄣ2;安:ㄢ;害:ㄏㄞ4;富:ㄈㄨ4;寒:ㄏㄢ2;尋:ㄒㄩㄣ2;小:ㄒㄧㄠ3;尖:ㄐㄧㄢ;尚:ㄕㄤ4;屋:ㄨ;岸:ㄢ4;島:ㄉㄠ3;帶:ㄉㄞ4;度:ㄉㄨ4;建:ㄐㄧㄢ4;很:ㄏㄣ3;徑:ㄐㄧㄥ4;急:ㄐㄧ2;情:ㄑㄧㄥ2;打:ㄉㄚ3;扣:ㄎㄡ4;找:ㄓㄠ3;拾:ㄕ2;捉:ㄓㄨㄛ;捕:ㄅㄨ3;採:ㄘㄞ3;探:ㄊㄢ4;描:ㄇㄧㄠ2;損:ㄙㄨㄣ3;搭:ㄉㄚ;摘:ㄓㄞ;撈:ㄌㄠ;撐:ㄔㄥ;撿:ㄐㄧㄢ3;擊:ㄐㄧ;收:ㄕㄡ;效:ㄒㄧㄠ4;救:ㄐㄧㄡ4;料:ㄌㄧㄠ4;於:ㄩ2;易:ㄧ4;晚:ㄨㄢ3;晴:ㄑㄧㄥ2;暴:ㄅㄠ4;朗:ㄌㄤ3;木:ㄇㄨ4;未:ㄨㄟ4;材:ㄘㄞ2;東:ㄉㄨㄥ;林:ㄌㄧㄣ2;枝:ㄓ;條:ㄊㄧㄠ2;棚:ㄆㄥ2;森:ㄙㄣ;標:ㄅㄧㄠ;樹:ㄕㄨ4;殊:ㄕㄨ;毒:ㄉㄨ2;氣:ㄑㄧ4;求:ㄑㄧㄡ2;沖:ㄔㄨㄥ;沙:ㄕㄚ;沿:ㄧㄢ2;活:ㄏㄨㄛ2;浪:ㄌㄤ4;海:ㄏㄞ3;淋:ㄌㄧㄣ2;深:ㄕㄣ;測:ㄘㄜ4;源:ㄩㄢ2;準:ㄓㄨㄣ3;溫:ㄨㄣ;漂:ㄆㄧㄠ;漫:ㄇㄢ4;潮:ㄔㄠ2;濕:ㄕ;濱:ㄅㄧㄣ;灘:ㄊㄢ;為:ㄨㄟ2;烈:ㄌㄧㄝ4;熬:ㄠ2;燃:ㄖㄢ2;營:ㄧㄥ2;片:ㄆㄧㄢ4;物:ㄨ4;特:ㄊㄜ4;猛:ㄇㄥ3;獸:ㄕㄡ4;由:ㄧㄡ2;留:ㄌㄧㄡ2;略:ㄌㄩㄝ4;發:ㄈㄚ;知:ㄓ;砍:ㄎㄢ3;符:ㄈㄨ2;策:ㄘㄜ4;算:ㄙㄨㄢ4;篝:ㄍㄡ;簡:ㄐㄧㄢ3;糧:ㄌㄧㄤ2;級:ㄐㄧ2;索:ㄙㄨㄛ3;緊:ㄐㄧㄣ3;緣:ㄩㄢ2;編:ㄅㄧㄢ;群:ㄑㄩㄣ2;腐:ㄈㄨ3;與:ㄩ3;若:ㄖㄨㄛ4;草:ㄘㄠ3;著:0ㄓㄜ;藻:ㄗㄠ3;處:ㄔㄨ4;蛋:ㄉㄢ4;蟲:ㄔㄨㄥ2;衝:ㄔㄨㄥ;衡:ㄏㄥ2;裡:ㄌㄧ3;製:ㄓ4;襲:ㄒㄧ2;西:ㄒㄧ;訊:ㄒㄩㄣ4;記:ㄐㄧ4;許:ㄒㄩ3;試:ㄕ4;變:ㄅㄧㄢ4;豐:ㄈㄥ;豬:ㄓㄨ;貝:ㄅㄟ4;負:ㄈㄨ4;資:ㄗ;足:ㄗㄨ2;路:ㄌㄨ4;輯:ㄐㄧ2;述:ㄕㄨ4;造:ㄗㄠ4;遜:ㄒㄩㄣ4;避:ㄅㄧ4;邊:ㄅㄧㄢ;野:ㄧㄝ3;量:ㄌㄧㄤ4;銷:ㄒㄧㄠ;長:ㄔㄤ2;降:ㄐㄧㄤ4;險:ㄒㄧㄢ3;集:ㄐㄧ2;難:ㄋㄢ2;雨:ㄩ3;靜:ㄐㄧㄥ4;靠:ㄎㄠ4;頭:ㄊㄡ2;類:ㄌㄟ4;風:ㄈㄥ;食:ㄕ2;香:ㄒㄧㄤ;高:ㄍㄠ;魚:ㄩ2;魯:ㄌㄨ3;鳥:ㄋㄧㄠ3;木頭:ㄇㄨ4 0ㄊㄡ;避難:ㄅㄧ4 ㄋㄢ4;部分:ㄅㄨ4 ㄈㄣ4;網:ㄨㄤ3;站:ㄓㄢ4;檢:ㄐㄧㄢ3;或:ㄏㄨㄛ4;之:ㄓ;今:ㄐㄧㄣ;休:ㄒㄧㄡ;低:ㄉㄧ;依:ㄧ;修:ㄒㄧㄡ;倒:ㄉㄠ3;判:ㄆㄢ4;助:ㄓㄨ4;即:ㄐㄧ2;友:ㄧㄡ3;各:ㄍㄜ4;員:ㄩㄢ2;國:ㄍㄨㄛ2;套:ㄊㄠ4;完:ㄨㄢ2;庇:ㄅㄧ4;序:ㄒㄩ4;張:ㄓㄤ;影:ㄧㄥ3;從:ㄘㄨㄥ2;復:ㄈㄨ4;快:ㄎㄨㄞ4;恢:ㄏㄨㄟ;息:ㄒㄧ2;態:ㄊㄞ4;按:ㄢ4;挨:ㄞ2;援:ㄩㄢ2;操:ㄘㄠ;施:ㄕ;曝:ㄆㄨ4;曬:ㄕㄞ4;歸:ㄍㄨㄟ;毀:ㄏㄨㄟ3;洪:ㄏㄨㄥ2;滾:ㄍㄨㄣ3;爭:ㄓㄥ;版:ㄅㄢ3;牲:ㄕㄥ;犧:ㄒㄧ;狀:ㄓㄨㄤ4;狂:ㄎㄨㄤ2;破:ㄆㄛ4;秒:ㄇㄧㄠ3;競:ㄐㄧㄥ4;給:ㄍㄟ3;置:ㄓ4;者:ㄓㄜ3;花:ㄏㄨㄚ;裝:ㄓㄨㄤ;覆:ㄈㄨ4;覓:ㄇㄧ4;費:ㄈㄟ4;質:ㄓ4;速:ㄙㄨ4;運:ㄩㄣ4;都:ㄉㄡ;醫:ㄧ;隊:ㄉㄨㄟ4;零:ㄌㄧㄥ2;響:ㄒㄧㄤ3;颶:ㄐㄩ4;餓:ㄜ4;驟:ㄓㄡ4;覆沒:ㄈㄨ4 ㄇㄛ4;挨餓:ㄞ2 ㄜ4;處理:ㄔㄨ3 ㄌㄧ3;骰子:ㄊㄡ2 0ㄗ;梯子:ㄊㄧ 0ㄗ;學生:ㄒㄩㄝ2 ㄕㄥ;老師:ㄌㄠ3 ㄕ;身分:ㄕㄣ ㄈㄣ4;切換:ㄑㄧㄝ ㄏㄨㄢ4;還原:ㄏㄨㄢ2 ㄩㄢ2;重新:ㄔㄨㄥ2 ㄒㄧㄣ;每行:ㄇㄟ3 ㄏㄤ2;排行:ㄆㄞ2 ㄏㄤ2;往回數:ㄨㄤ3 ㄏㄨㄟ2 ㄕㄨ3".split(";").forEach(function(e){var i=e.indexOf(":");if(i<1)return;var k=e.slice(0,i),v=e.slice(i+1).split(" ").map(zyFix);if(k.length>1){ZW[k]=v;ZMAX=Math.max(ZMAX,k.length)}else ZC[k]=v[0]});
 function zyChar(c,sy){var s=document.createElement("span");s.className="zy";
   s.innerHTML='<span class="zc">'+c+'</span>'+(sy?'<span class="zb"><span class="zs">'+(sy[0]?'<i class="zq">'+sy[0]+'</i>':"")+Array.from(sy[1]).map(function(x){return"<i>"+x+"</i>"}).join("")+(sy[2]?'<span class="zt">'+sy[2]+'</span>':"")+'</span></span>':"");return s}
 function zyNode(tn){var t=tn.nodeValue;if(!/[\u4e00-\u9fff]/.test(t))return;var f=document.createDocumentFragment(),buf="",i=0;
@@ -720,7 +870,7 @@ function zyNode(tn){var t=tn.nodeValue;if(!/[\u4e00-\u9fff]/.test(t))return;var 
     if(done)continue;
     var c=t.charAt(i);if(ZC[c]){flush();f.appendChild(zyChar(c,ZC[c]))}else if(/[\u4e00-\u9fff]/.test(c)){flush();f.appendChild(zyChar(c,null))}else buf+=c;i++}
   flush();tn.parentNode.replaceChild(f,tn)}
-var ZSK="svg,textarea,input,script,style,.q,.opts,.mem,.item,.pill,.nz,.zy,.sbm,#tn,#sn_log";
+var ZSK="svg,textarea,input,script,style,.q,.opts,.mem,.item,.pill,.nz,.zy,.sbm,#tn,#sn_log,#rb2_log";
 function zyRun(){if(!zon)return;var w=document.createTreeWalker(app,NodeFilter.SHOW_TEXT),a=[],n;while((n=w.nextNode()))a.push(n);
   a.forEach(function(x){var p=x.parentElement;if(p&&!p.closest(ZSK))zyNode(x)})}
 var zq=0,zobs=new MutationObserver(function(){if(zq)return;zq=setTimeout(function(){zq=0;zobs.disconnect();try{zyRun()}catch(e){}zobs.observe(app,{childList:true,subtree:true})},30)});
