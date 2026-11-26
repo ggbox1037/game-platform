@@ -302,11 +302,11 @@ function bankEd(){
 
 /* ===== 單人：白板 ===== */
 function whiteboard(){
-  var cols=["#2b2b2b","#e53935","#f08a24","#fdd835","#43a047","#1e88e5","#8e24aa","#ffffff"],col=cols[0],sz=6,hist=[];
+  var stamp="",cols=["#2b2b2b","#e53935","#f08a24","#fdd835","#43a047","#1e88e5","#8e24aa","#ffffff"],col=cols[0],sz=6,hist=[];
   app.innerHTML=topbar("🎨 白板")+'<div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">'+
     cols.map(function(c,i){return '<button class="wbc" data-c="'+c+'" title="'+(i==7?"橡皮擦":"")+'" style="width:34px;height:34px;padding:0;border-radius:50%;background:'+c+';border:3px solid '+(i?"#ddd":"#f08a24")+'">'+(i==7?"🧽":"")+'</button>'}).join("")+
     '<select id="wbs"><option value="3">細</option><option value="6" selected>中</option><option value="14">粗</option><option value="30">特粗</option></select>'+
-    '<button class="sec" id="wbu">↩️ 復原</button><button class="sec" id="wbx">🗑️ 清除</button><button class="sec" id="wbd">💾 儲存</button></div>'+
+    '<button class="sec" id="wbu">↩️ 復原</button><button class="sec" id="wbx">🗑️ 清除</button><select id="wbe"><option value="">🖌️ 畫筆</option>'+["⭐","❤️","😀","👍","🌸","🐱","🍎","🎉","✅","💯"].map(function(e){return '<option value="'+e+'">印章 '+e+'</option>'}).join("")+'</select></div>'+
     '<canvas id="wb" style="width:100%;height:65vh;background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.1);touch-action:none;display:block"></canvas>';
   bindBack();
   var cv=$("#wb"),cx=cv.getContext("2d"),dpr=window.devicePixelRatio||1;
@@ -315,14 +315,14 @@ function whiteboard(){
   function save(){hist.push(cx.getImageData(0,0,cv.width,cv.height));if(hist.length>30)hist.shift()}
   var down=false,lx,ly;
   function pt(e){var r=cv.getBoundingClientRect();return[(e.clientX-r.left)*dpr,(e.clientY-r.top)*dpr]}
-  cv.onpointerdown=function(e){down=true;save();cv.setPointerCapture(e.pointerId);var p=pt(e);lx=p[0];ly=p[1];cx.beginPath();cx.arc(lx,ly,sz*dpr/2,0,7);cx.fillStyle=col;cx.fill()};
+  cv.onpointerdown=function(e){save();if(stamp){var q=pt(e),f=Math.max(sz*5,40)*dpr;cx.font=f+"px sans-serif";cx.textAlign="center";cx.textBaseline="middle";cx.fillText(stamp,q[0],q[1]);return}down=true;cv.setPointerCapture(e.pointerId);var p=pt(e);lx=p[0];ly=p[1];cx.beginPath();cx.arc(lx,ly,sz*dpr/2,0,7);cx.fillStyle=col;cx.fill()};
   cv.onpointermove=function(e){if(!down)return;var p=pt(e);cx.strokeStyle=col;cx.lineWidth=sz*dpr;cx.lineCap="round";cx.lineJoin="round";cx.beginPath();cx.moveTo(lx,ly);cx.lineTo(p[0],p[1]);cx.stroke();lx=p[0];ly=p[1]};
   cv.onpointerup=cv.onpointercancel=function(){down=false};
-  app.querySelectorAll(".wbc").forEach(function(b){b.onclick=function(){col=b.dataset.c;app.querySelectorAll(".wbc").forEach(function(x){x.style.borderColor="#ddd"});b.style.borderColor="#f08a24"}});
+  app.querySelectorAll(".wbc").forEach(function(b){b.onclick=function(){col=b.dataset.c;app.querySelectorAll(".wbc").forEach(function(x){x.style.borderColor="#ddd"});b.style.borderColor="#f08a24";stamp="";$("#wbe").value=""}});
+  $("#wbe").onchange=function(){stamp=this.value};
   $("#wbs").onchange=function(){sz=+this.value};
   $("#wbu").onclick=function(){if(hist.length)cx.putImageData(hist.pop(),0,0)};
   $("#wbx").onclick=function(){save();cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height)};
-  $("#wbd").onclick=function(){var a=document.createElement("a");a.download="白板.png";a.href=cv.toDataURL("image/png");a.click()};
   window.addEventListener("resize",fit);cleanup=function(){window.removeEventListener("resize",fit)};
 }
 
