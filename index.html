@@ -263,9 +263,10 @@ function home(){
   '<button class="game" id="g2"><b>🃏 翻牌配對</b><span>國字配注音、注音配國字</span></button>'+
   '<button class="game" id="g4"><b>🏝️ 魯濱遜漂流記</b><span>單人卡牌生存，活過 14 回合</span></button>'+
   '<button class="game" id="g5"><b>🏝️ 魯濱遜漂流記・多人版</b><span>同一台平板輪流，2–14 人，合作求生</span></button>'+
+  '<button class="game" id="g6"><b>🎨 白板</b><span>用手指或滑鼠自由畫畫</span></button>'+
   '<button class="game" id="gj"><b>🙋 多人連線</b><span>輸入老師的房號加入（選擇題搶答、蛇棋、戳戳樂）</span></button></div>';
   bindSwitch();
-  $("#g1").onclick=function(){go(quiz)};$("#g2").onclick=function(){go(memory)};$("#g4").onclick=function(){go(robinson)};$("#g5").onclick=function(){go(robinson2)};$("#gj").onclick=function(){go(join)};
+  $("#g1").onclick=function(){go(quiz)};$("#g2").onclick=function(){go(memory)};$("#g4").onclick=function(){go(robinson)};$("#g5").onclick=function(){go(robinson2)};$("#g6").onclick=function(){go(whiteboard)};$("#gj").onclick=function(){go(join)};
 }
 
 /* ===== 分數統計（老師）===== */
@@ -296,6 +297,33 @@ function bankEd(){
     app.querySelectorAll("[data-i]").forEach(function(b){b.onclick=function(){bank.splice(+b.dataset.i,1);saveBank();draw()}});
   }
   draw();
+}
+
+
+/* ===== 單人：白板 ===== */
+function whiteboard(){
+  var cols=["#2b2b2b","#e53935","#f08a24","#fdd835","#43a047","#1e88e5","#8e24aa","#ffffff"],col=cols[0],sz=6,hist=[];
+  app.innerHTML=topbar("🎨 白板")+'<div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">'+
+    cols.map(function(c,i){return '<button class="wbc" data-c="'+c+'" title="'+(i==7?"橡皮擦":"")+'" style="width:34px;height:34px;padding:0;border-radius:50%;background:'+c+';border:3px solid '+(i?"#ddd":"#f08a24")+'">'+(i==7?"🧽":"")+'</button>'}).join("")+
+    '<select id="wbs"><option value="3">細</option><option value="6" selected>中</option><option value="14">粗</option><option value="30">特粗</option></select>'+
+    '<button class="sec" id="wbu">↩️ 復原</button><button class="sec" id="wbx">🗑️ 清除</button><button class="sec" id="wbd">💾 儲存</button></div>'+
+    '<canvas id="wb" style="width:100%;height:65vh;background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.1);touch-action:none;display:block"></canvas>';
+  bindBack();
+  var cv=$("#wb"),cx=cv.getContext("2d"),dpr=window.devicePixelRatio||1;
+  function fit(){var r=cv.getBoundingClientRect(),img=cv.width?cx.getImageData(0,0,cv.width,cv.height):null;cv.width=r.width*dpr;cv.height=r.height*dpr;cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height);if(img)cx.putImageData(img,0,0)}
+  fit();
+  function save(){hist.push(cx.getImageData(0,0,cv.width,cv.height));if(hist.length>30)hist.shift()}
+  var down=false,lx,ly;
+  function pt(e){var r=cv.getBoundingClientRect();return[(e.clientX-r.left)*dpr,(e.clientY-r.top)*dpr]}
+  cv.onpointerdown=function(e){down=true;save();cv.setPointerCapture(e.pointerId);var p=pt(e);lx=p[0];ly=p[1];cx.beginPath();cx.arc(lx,ly,sz*dpr/2,0,7);cx.fillStyle=col;cx.fill()};
+  cv.onpointermove=function(e){if(!down)return;var p=pt(e);cx.strokeStyle=col;cx.lineWidth=sz*dpr;cx.lineCap="round";cx.lineJoin="round";cx.beginPath();cx.moveTo(lx,ly);cx.lineTo(p[0],p[1]);cx.stroke();lx=p[0];ly=p[1]};
+  cv.onpointerup=cv.onpointercancel=function(){down=false};
+  app.querySelectorAll(".wbc").forEach(function(b){b.onclick=function(){col=b.dataset.c;app.querySelectorAll(".wbc").forEach(function(x){x.style.borderColor="#ddd"});b.style.borderColor="#f08a24"}});
+  $("#wbs").onchange=function(){sz=+this.value};
+  $("#wbu").onclick=function(){if(hist.length)cx.putImageData(hist.pop(),0,0)};
+  $("#wbx").onclick=function(){save();cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height)};
+  $("#wbd").onclick=function(){var a=document.createElement("a");a.download="白板.png";a.href=cv.toDataURL("image/png");a.click()};
+  window.addEventListener("resize",fit);cleanup=function(){window.removeEventListener("resize",fit)};
 }
 
 /* ===== 單人：選擇題 ===== */
