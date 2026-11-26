@@ -416,8 +416,7 @@ PK.panels=function(st){
   var chips=st.lot.map(function(e,i){var on=i<st.ls&&hs[i]&&hs[i].names.length;return '<span class="pke'+(on?" on":"")+'">'+(i<st.ls?esc(e):"❔")+'</span>'}).join("");
   var winners=st.P.filter(function(p){return p.pz>0}).sort(function(a,b){return b.pz-a.pz}),dead=st.P.filter(function(p){return !p.alive}).sort(function(a,b){return a.died-b.died});
   var med=function(i){return i===0?"🥇 ":i===1?"🥈 ":i===2?"🥉 ":""};
-  return '<div class="card"><b>🎰 第 '+st.r+' 回合抽獎</b><div class="pklot">'+chips+'</div><div class="pkh"><b>命中的玩家：</b>'+(hn.length?hn.map(function(n){return nz(n)}).join("、"):'<span class="pkdim">（還沒有人）</span>')+'</div>'+(lines?'<div>'+lines+'</div>':"")+'</div>'+
-    '<div class="card"><b>🏅 中獎玩家</b>'+(winners.length?winners.map(function(p,i){return '<div>'+med(i)+nz(p.name)+' 🏅×'+p.pz+'</div>'}).join(""):'<div class="pkdim">（還沒有人）</div>')+'</div>'+
+  return '<div class="card"><b>🏅 中獎玩家</b>'+(winners.length?winners.map(function(p,i){return '<div>'+med(i)+nz(p.name)+' 🏅×'+p.pz+'</div>'}).join(""):'<div class="pkdim">（還沒有人）</div>')+'</div>'+
     '<div class="card"><b>💀 死亡名單</b>'+(dead.length?dead.map(function(p){return '<div>💀 '+nz(p.name)+'（第 '+p.died+' 回合）</div>'}).join(""):'<div class="pkdim">（目前沒有人）</div>')+'</div>'};
 PK.panelsRender=function(st){var pp=document.getElementById("pkp");if(pp)pp.innerHTML=PK.panels(st)};
 PK.ui=function(host){return '<div id="sm"></div><div class="pkw'+(host?"":" one")+'"><div class="pkcol"><div class="pkinfo" id="pki"></div><div class="pkmsg nz" id="pkm"></div><div class="pkb" id="pkb"></div><div class="sbf"><div>'+(host?'<button class="ghost" id="sk">跳過此人</button>':'')+'</div><div class="sbleg" id="sbl"></div></div></div>'+(host?'<div class="pkpan" id="pkp"></div>':'')+'</div>'};
@@ -860,7 +859,7 @@ function host(){
       function sync(){PK.render(stt(),true,false);var m=document.getElementById("pkm");if(m)m.textContent=msg;
         rm.emit("pst",{p:P.map(function(x){return[x.peer,x.name,x.alive?1:0,x.pz,x.died]}),c:c,o:opened,z:zones,bm:bombs,r:round,pf:pf,hf:hf,ph:ph,n:qn,ov:over?1:0,m:msg})}
       function drawLot(){lot=shuf(PKE).slice(0,10);ls=0;(function rev(){if(mode!=="poke"||!document.getElementById("pkb"))return;ls++;PK.render(stt(),true,false);if(ls<10)setTimeout(rev,220)})()}
-      function step(){c++;if(c>=P.length){c=0;round++;drawLot()}}
+      function step(){c++;if(c>=P.length){c=0;round++}}
       function nextTurn(d){step();setTimeout(turn,d||1500)}
       function turn(){
         if(over||mode!=="poke")return;
@@ -902,7 +901,7 @@ function host(){
         msg=win?"🏆 全部獎品都找到了！":"💥 所有玩家都出局了";sync();
         var d={w:win?1:0,r:r,dd:dd};rm.emit("pend",d);SB.modal(PK.endH(d),"w");$("#pkx").onclick=function(){SB.modal()}}
       $("#sk").onclick=function(){if(over||ph==="w")return;ph="w";q=null;qn++;SB.modal();msg=P[c].name+" 被跳過";sync();nextTurn(300)};
-      drawLot();sync();turn();
+      sync();turn();
     }
     function startSnake(){
       mode="snake";
