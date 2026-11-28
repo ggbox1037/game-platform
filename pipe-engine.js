@@ -8,9 +8,9 @@
   var TYPES = ["straight", "elbow", "tee", "cross"];
   var NAMES = { straight: "直線管", elbow: "彎曲管", tee: "T型管", cross: "十字管" };
   var DIFFS = [
-    { id: "easy", name: "初級", size: 8, tickMs: 6000, delay: 5, rock: 0.12 },
-    { id: "mid", name: "中級", size: 10, tickMs: 5000, delay: 4, rock: 0.15 },
-    { id: "hard", name: "高級", size: 12, tickMs: 4500, delay: 3, rock: 0.18 }
+    { id: "easy", name: "初級", size: 8, tickMs: 6000, delay: 5, rock: 0.12, slack: 3, tee: 3, cross: 2 },
+    { id: "mid", name: "中級", size: 10, tickMs: 5000, delay: 4, rock: 0.15, slack: 3, tee: 2, cross: 1 },
+    { id: "hard", name: "高級", size: 12, tickMs: 4500, delay: 3, rock: 0.18, slack: 3, tee: 1, cross: 1 }
   ];
 
   function opp(d) { return (d + 2) % 4; }
@@ -64,7 +64,7 @@
       if (onPath[key(x, y)] || (x === 0 && y === sy) || (x === N - 1 && y === ty)) continue;
       if (R() < df.rock) obstacles.push({ x: x, y: y });
     }
-    // 參考路線需要的管數 → 庫存（至少有範例數量，且保證夠用 +3）
+    // 庫存 = 參考路線需要的直線／彎曲管數 + 備用 slack；T型、十字管當「萬用替代」少量給（可由關卡設定修改）
     var needS = 0, needE = 0;
     for (var i = 0; i < path.length; i++) {
       var a = i === 0 ? { x: 0, y: sy } : path[i - 1], b = i === path.length - 1 ? { x: N - 1, y: ty } : path[i + 1];
@@ -74,7 +74,7 @@
     return {
       seed: seed, diff: df.id, diffName: df.name, size: N, tickMs: df.tickMs, delay: df.delay,
       source: source, target: target, obstacles: obstacles, specials: [], path: path,
-      inv: { straight: Math.max(12, needS + 3), elbow: Math.max(16, needE + 3), tee: 5, cross: 3 }
+      inv: { straight: needS + df.slack, elbow: needE + df.slack, tee: df.tee, cross: df.cross }
     };
   }
 
