@@ -72,7 +72,7 @@
       if (straight) needS++; else needE++;
     }
     return {
-      seed: seed, diff: df.id, diffName: df.name, size: N, tickMs: df.tickMs, delay: df.delay,
+      seed: seed, start: "house", grace: 2, diff: df.id, diffName: df.name, size: N, tickMs: df.tickMs, delay: df.delay,
       source: source, target: target, obstacles: obstacles, specials: [], path: path,
       inv: { straight: needS + df.slack, elbow: needE + df.slack, tee: df.tee, cross: df.cross }
     };
@@ -82,7 +82,9 @@
   function createGame(level) {
     var s = {
       level: level, size: level.size, source: level.source, target: level.target,
-      obst: {}, inv: {}, pipes: {}, nextId: 1, ops: {}, status: "flow", tick: 0, delay: level.delay,
+      obst: {}, inv: {}, pipes: {}, nextId: 1, ops: {}, status: "flow", tick: 0, rounds: 0,
+      // start:"house" ＝ 水管裝到房子四周的格子，水才開始流（之後再等 grace 回合才前進第一格）；沒設定則用舊的固定等待回合 delay
+      started: level.start !== "house", hold: 0, grace: level.grace || 0, delay: level.start === "house" ? 0 : level.delay,
       fronts: [{ x: level.source.x, y: level.source.y, d: null, src: true }],
       visited: {}, wet: {}, failure: null, stats: {}, steps: 0
     };
@@ -107,7 +109,9 @@
     if (!(s.inv[type] > 0)) return finish(s, opId, { ok: false, err: "no_stock" });
     var p = { id: s.nextId++, type: type, x: x, y: y, rot: ((rot % 4) + 4) % 4, by: pid, t: now || Date.now() };
     s.pipes[k] = p; s.inv[type]--; pstat(s, pid).place++;
-    return finish(s, opId, { ok: true, pipe: p });
+    var trig = false;
+    if (!s.started && Math.abs(x - s.target.x) + Math.abs(y - s.target.y) === 1) { s.started = true; s.hold = s.grace; trig = true; }
+    return finish(s, opId, { ok: true, pipe: p, started: trig });
   }
   function mine(s, pid, x, y) {
     var p = s.pipes[key(x, y)];
@@ -156,6 +160,9 @@
   // 每一回合呼叫一次。回傳事件：wait / move / win / fail
   function tick(s) {
     if (s.status !== "flow") return [];
+    s.rounds++;
+    if (!s.started) return [{ t: "wait", house: true }];
+    if (s.hold > 0) { s.hold--; return [{ t: "wait", left: s.hold }]; }
     s.tick++;
     if (s.tick <= s.delay) return [{ t: "wait", left: s.delay - s.tick }];
     var next = [], ev = [], won = null, fail = null;
@@ -186,7 +193,7 @@
   function counts(s) { var n = 0; for (var k in s.pipes) n++; return n; }
   function snapshot(s) { // 多人同步用（可直接 JSON 傳送）
     return { size: s.size, source: s.source, target: s.target, obstacles: s.level.obstacles, inv: s.inv,
-      pipes: Object.keys(s.pipes).map(function (k) { return s.pipes[k]; }), tick: s.tick, delay: s.delay,
+      pipes: Object.keys(s.pipes).map(function (k) { return s.pipes[k]; }), tick: s.tick, rounds: s.rounds, started: s.started, hold: s.hold, delay: s.delay,
       status: s.status, fronts: s.fronts, wet: s.wet, failure: s.failure };
   }
 
