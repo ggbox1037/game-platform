@@ -301,6 +301,8 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 <div id="app"></div>
 <script src="config.js"></script>
 <script src="supabase.js"></script>
+<script src="pipe-engine.js"></script>
+<script src="pipe-game.js"></script>
 <script>
 /* ===== 題庫（所有遊戲共用）===== */
 var SEED=[["ㄇㄚ","媽"],["ㄉㄚˋ","大"],["ㄏㄠˇ","好"],["ㄕㄨㄟˇ","水"],["ㄖˋ","日"],["ㄩㄝˋ","月"],["ㄏㄨㄛˇ","火"],["ㄖㄣˊ","人"],["ㄕㄢ","山"],["ㄎㄡˇ","口"]];
@@ -360,10 +362,11 @@ function home(){
   '<button class="game" id="g2"><b>🃏 翻牌配對</b><span>國字配注音、注音配國字</span></button>'+
   '<button class="game" id="g4"><b>🏝️ 魯濱遜漂流記</b><span>單人卡牌生存，活過 14 回合</span></button>'+
   '<button class="game" id="g7"><b>🎣 老漁夫釣魚</b><span>下鉤釣出答案正確的魚</span></button>'+
+  '<button class="game" id="g8"><b>🔧 水管工</b><span>答對題目才能鋪水管，讓水流到終點</span></button>'+
   '<button class="game" id="g6"><b>🎨 白板</b><span>用手指或滑鼠自由畫畫</span></button>'+
   '</div><h2>多人遊戲</h2><div class="grid"><button class="game" id="gj"><b>🙋 多人連線</b><span>輸入老師的房號加入（選擇題搶答、蛇棋、戳戳樂）</span></button></div>';
   bindSwitch();
-  $("#g0").onclick=function(){go(rpg)};$("#g1").onclick=function(){go(quiz)};$("#g2").onclick=function(){go(memory)};$("#g4").onclick=function(){go(robinson)};$("#g6").onclick=function(){go(whiteboard)};$("#g7").onclick=function(){go(fishGame)};$("#gj").onclick=function(){go(join)};
+  $("#g0").onclick=function(){go(rpg)};$("#g1").onclick=function(){go(quiz)};$("#g2").onclick=function(){go(memory)};$("#g4").onclick=function(){go(robinson)};$("#g6").onclick=function(){go(whiteboard)};$("#g8").onclick=function(){go(pipeGame)};$("#g7").onclick=function(){go(fishGame)};$("#gj").onclick=function(){go(join)};
 }
 
 /* ===== 分數統計（老師）===== */
