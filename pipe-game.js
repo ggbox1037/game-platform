@@ -47,10 +47,11 @@ function pipePlay(di) {
   app.innerHTML = topbar("🔧 水管工・" + diff.name) +
     '<div id="pp"><div class="hud"><span id="pp_st" class="nz"></span><span id="pp_cnt" class="nz"></span></div>' +
     '<div class="wrap" id="pp_wrap"><canvas id="pp_c"></canvas></div>' +
-    '<div class="modes"><button data-m="place">➕ 放水管</button><button data-m="rotate">🔄 轉一下</button><button data-m="remove">🗑️ 拆掉</button></div>' +
+    '<div class="modes"><button data-m="place">➕ 放水管</button><button data-m="rotate">🔄 轉一下</button><button data-m="remove">🗑️ 拆掉</button></div>'+
+    '<div class="row"><button class="ghost nz" id="pp_skip" style="flex:1">⏭ 跳過這回合（不答題，水流前進一格）</button></div>' +
     '<div class="types" id="pp_types">' + PE.TYPES.map(function (t) { return '<button data-t="' + t + '"><canvas width="88" height="88"></canvas><span class="nz">' + PE.NAMES[t] + ' <b></b></span></button>'; }).join("") +
     '<button id="pp_rot" class="nz" style="flex-basis:100%;min-height:44px">↻ 轉換放置方向</button></div>' +
-    '<div class="mv"><div class="msg nz" id="pp_msg">先選動作，再點地圖上的格子</div></div><div id="pp_log" class="nz"></div>' +
+    '<div class="mv"><div class="msg nz" id="pp_msg">先選動作，再點格子，答對題目才會執行。每個動作結束＝一回合，水流前進一格</div></div><div id="pp_log" class="nz"></div>' +
     '<div id="pp_ov"><div class="box" id="pp_box"></div></div></div>';
   bindBack();
 
@@ -97,17 +98,13 @@ function pipePlay(di) {
     S.fronts.forEach(function (f) { if (f.x === x && f.y === y) front = f; });
     if (front) {
       var e = PE.opp(front.d);
-      var running = S.tick > S.delay;
-      ops.forEach(function (d) {
-        if (d === e) { entry[d] = true; fill[d] = running ? Math.min(1, p * 2) : 1; }
-        else fill[d] = running ? Math.max(0, p * 2 - 1) : 0;
-      });
+      ops.forEach(function (d) { if (d === e) { entry[d] = true; fill[d] = p; } else fill[d] = 0; });
     } else ops.forEach(function (d) { fill[d] = 1; entry[d] = w.ins.indexOf(d) >= 0; });
     return { fill: fill, entry: entry };
   }
   var cols = ["#ffd6c9", "#cfe8ff", "#d9f2c2", "#ffe9a8"];
   function draw(now) {
-    var p = Math.min(1, (now - lastTick) / level.tickMs);
+    var p = Math.min(1, (now - lastTick) / 600);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cs * N, cs * N);
     var x, y, isDark = getComputedStyle(document.body).colorScheme === "dark";
     for (y = 0; y < N; y++) for (x = 0; x < N; x++) {
@@ -151,8 +148,9 @@ function pipePlay(di) {
   }
   function hud() {
     if (S.status === "flow") {
-      if (S.tick < S.delay) setTxt("pp_st", "⏳ 水流 " + (S.delay - S.tick) + " 回合後出發");
-      else setTxt("pp_st", "💧 水流前進中・第 " + (S.tick - S.delay) + " 步");
+      var rd = "第 " + (S.tick + 1) + " 回合・";
+      if (S.tick < S.delay) setTxt("pp_st", rd + "⏳ 水流 " + (S.delay - S.tick) + " 回合後出發");
+      else setTxt("pp_st", rd + "💧 水流每回合前進一格");
     } else setTxt("pp_st", S.status === "won" ? "🎉 成功！" : "💥 失敗");
     setTxt("pp_cnt", "水管 " + PE.counts(S) + " 根");
   }
@@ -167,12 +165,12 @@ function pipePlay(di) {
     else r = PE.remove(S, ME, act.x, act.y, "o" + Date.now() + Math.random());
     if (r.ok) { log("✅ " + LABEL[act.mode] + "（" + (act.x + 1) + "," + (act.y + 1) + "）"); say("成功！" + LABEL[act.mode]); }
     else { say("這步沒成功：" + (PP_ERR[r.err] || r.err)); log("⚠️ " + (PP_ERR[r.err] || r.err)); hit = { x: act.x, y: act.y, t: performance.now() }; }
-    icons();
+    icons(); return r.ok;
   }
   function ask(act) {
     if (pending || ended) return; pending = act;
     var q = mk(shuf(bank)[0]);
-    $("#pp_box").innerHTML = '<b>' + LABEL[act.mode] + '：先答對這題</b><div class="q">' + esc(q.q) + '</div><div class="opts">' +
+    $("#pp_box").innerHTML = '<b>' + LABEL[act.mode] + '：答對才會執行</b><div class="q">' + esc(q.q) + '</div><div class="opts">' +
       q.opts.map(function (o) { return '<button data-o="' + esc(o) + '">' + esc(o) + '</button>'; }).join("") + '</div>' +
       '<div class="row"><button class="ghost" id="pp_cancel">取消</button></div>';
     $("#pp_ov").style.display = "flex"; qlock = false;
@@ -181,12 +179,13 @@ function pipePlay(di) {
       b.onclick = function () {
         if (qlock || ended) return; qlock = true;
         var ok = b.dataset.o === q.a; b.classList.add(ok ? "ok" : "bad");
-        if (ok) { var a = pending; run(a); }
+        var did = false;
+        if (ok) { var a = pending; did = run(a); }
         else {
           $("#pp_box").querySelectorAll("[data-o]").forEach(function (x) { if (x.dataset.o === q.a) x.classList.add("ok"); });
           addWrong(sname || "本機", q.q, q.a, b.dataset.o); say("答錯了，這步取消"); log("❌ 答錯，" + LABEL[act.mode] + "取消");
         }
-        setTimeout(function () { if (!ended) closeModal(); }, ok ? 350 : 1100);
+        setTimeout(function () { if (ended) return; closeModal(); if (ok ? did : true) endRound(); }, ok ? 350 : 1100);
       };
     });
   }
@@ -220,11 +219,11 @@ function pipePlay(di) {
     $("#pp_ov").style.display = "flex"; pending = null;
     $("#pp_again").onclick = function () { go(pipePlay, di); }; $("#pp_home").onclick = function () { go(home); };
   }
-  function loop(now) {
-    raf = requestAnimationFrame(loop);
-    if (S.status === "flow" && now - lastTick >= level.tickMs) {
-      lastTick = now - ((now - lastTick) > level.tickMs * 2 ? 0 : (now - lastTick) - level.tickMs);
-      var ev = PE.tick(S);
+  function endRound() {
+    if (ended || S.status !== "flow") return;
+    lastTick = performance.now();
+    var ev = PE.tick(S);
+    {
       ev.forEach(function (e) {
         if (e.t === "move") log("💧 水流到 (" + (e.x + 1) + "," + (e.y + 1) + ")");
         if (e.t === "fail") log("💥 " + PP_FAIL[e.reason]);
@@ -232,8 +231,10 @@ function pipePlay(di) {
       });
       if (S.status !== "flow") finish();
     }
-    hud(); draw(now);
+    hud(); icons();
   }
+  $("#pp_skip").onclick = function () { if (pending || ended) return; log("⏭ 跳過回合"); endRound(); };
+  function loop(now) { raf = requestAnimationFrame(loop); hud(); draw(now); }
   layout(); icons(); hud();
   raf = requestAnimationFrame(loop);
 }

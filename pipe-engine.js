@@ -9,8 +9,8 @@
   var NAMES = { straight: "直線管", elbow: "彎曲管", tee: "T型管", cross: "十字管" };
   var DIFFS = [
     { id: "easy", name: "初級", size: 8, tickMs: 6000, delay: 5, rock: 0.12 },
-    { id: "mid", name: "中級", size: 10, tickMs: 5000, delay: 5, rock: 0.15 },
-    { id: "hard", name: "高級", size: 12, tickMs: 4500, delay: 5, rock: 0.18 }
+    { id: "mid", name: "中級", size: 10, tickMs: 5000, delay: 4, rock: 0.15 },
+    { id: "hard", name: "高級", size: 12, tickMs: 4500, delay: 3, rock: 0.18 }
   ];
 
   function opp(d) { return (d + 2) % 4; }
