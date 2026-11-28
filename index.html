@@ -350,9 +350,8 @@ function home(){
     '<button class="game" id="tb"><b>📚 題庫</b><span>新增、刪除、匯入題目</span></button>'+
     '<button class="game" id="tr"><b>⚔️ 國字勇者設定</b><span>遊戲數值、圖片（題目用平台題庫）</span></button>'+
     '<button class="game" id="tf"><b>🎣 漁夫釣魚設定</b><span>加法範圍、是否加入乘法</span></button>'+
-    '<button class="game" id="tsk"><b>⛏️ 地下尋金者</b><span>3～10 人祕密身分桌遊（老師也可以當玩家）</span></button>'+
     '<button class="game" id="ts"><b>📊 分數統計</b><span>每位學生的成績紀錄</span></button></div>';
-    bindSwitch();$("#th").onclick=function(){go(host)};$("#tb").onclick=function(){go(bankEd)};$("#ts").onclick=function(){go(statsView)};$("#tr").onclick=function(){go(rpgSet)};$("#tf").onclick=function(){go(fishEd)};$("#tsk").onclick=function(){go(skStart)};
+    bindSwitch();$("#th").onclick=function(){go(host)};$("#tb").onclick=function(){go(bankEd)};$("#ts").onclick=function(){go(statsView)};$("#tr").onclick=function(){go(rpgSet)};$("#tf").onclick=function(){go(fishEd)};
     return;
   }
   app.innerHTML='<div class="top"><h1 style="margin:0">🧒 '+nz(sname)+'</h1><div class="sp"></div>'+switchBtn()+'</div><h2>單人遊戲</h2><div class="grid">'+
@@ -362,9 +361,9 @@ function home(){
   '<button class="game" id="g4"><b>🏝️ 魯濱遜漂流記</b><span>單人卡牌生存，活過 14 回合</span></button>'+
   '<button class="game" id="g7"><b>🎣 老漁夫釣魚</b><span>下鉤釣出答案正確的魚</span></button>'+
   '<button class="game" id="g6"><b>🎨 白板</b><span>用手指或滑鼠自由畫畫</span></button>'+
-  '</div><h2>多人遊戲</h2><div class="grid"><button class="game" id="gj"><b>🙋 多人連線</b><span>輸入老師的房號加入（選擇題搶答、蛇棋、戳戳樂）</span></button><button class="game" id="gsk"><b>⛏️ 地下尋金者</b><span>3～10 人祕密身分桌遊：礦工 vs 破壞者</span></button></div>';
+  '</div><h2>多人遊戲</h2><div class="grid"><button class="game" id="gj"><b>🙋 多人連線</b><span>輸入老師的房號加入（選擇題搶答、蛇棋、戳戳樂）</span></button></div>';
   bindSwitch();
-  $("#g0").onclick=function(){go(rpg)};$("#g1").onclick=function(){go(quiz)};$("#g2").onclick=function(){go(memory)};$("#g4").onclick=function(){go(robinson)};$("#g6").onclick=function(){go(whiteboard)};$("#g7").onclick=function(){go(fishGame)};$("#gj").onclick=function(){go(join)};$("#gsk").onclick=function(){go(skStart)};
+  $("#g0").onclick=function(){go(rpg)};$("#g1").onclick=function(){go(quiz)};$("#g2").onclick=function(){go(memory)};$("#g4").onclick=function(){go(robinson)};$("#g6").onclick=function(){go(whiteboard)};$("#g7").onclick=function(){go(fishGame)};$("#gj").onclick=function(){go(join)};
 }
 
 /* ===== 分數統計（老師）===== */
@@ -640,7 +639,7 @@ resize();init();raf=requestAnimationFrame(loop);
 
 }
 
-/* ===== 地下尋金者：遊戲引擎（與 Edge Function 內相同）===== */
+/* ===== 地下尋金者：遊戲引擎 ===== */
 /* 地下尋金者 遊戲引擎：純函式、無任何 I/O。同一份程式碼同時給 Edge Function（可信任裁判）與前端（只用來顯示合法位置）。 */
 var SKE=(function(){
 var DX=[0,1,0,-1],DY=[-1,0,1,0]; // 邊：0 上 1 右 2 下 3 左
@@ -787,81 +786,39 @@ return{CFG:CFG,TOOLS:TOOLS,TN:TN,TI:TI,GN:GN,GI:GI,PATHS:PATHS,DECK:DECK,REPAIR:
  shapeOf:shapeOf,info:info,key:key,cellInfo:cellInfo,reach:reach,legalPlace:legalPlace,placements:placements,newGame:newGame,act:act,autoSkip:autoSkip,setGone:setGone,goalAt:goalAt}})();
 
 
-/* ===== 多人桌遊：地下尋金者（獨立模組）。祕密資料全部在伺服器（Edge Function「sk」+ RLS），這裡只負責畫面與送出行動 ===== */
-var SK={client:null,R:null,authed:false,code:"",token:"",seat:-1,pub:null,me:null,ver:-1,meKey:"",online:{},hasPres:false,ui:{},timers:[],ch:null,rm:null,roleShown:"",busy:false,msg:"",nameSaved:""};
-function skClean(){SK.timers.forEach(clearInterval);SK.timers=[];try{if(SK.ch&&SK.client)SK.client.removeChannel(SK.ch)}catch(e){}SK.ch=null;try{if(SK.rm)SK.rm.leave()}catch(e){}SK.rm=null;SK.pub=null;SK.me=null;SK.ver=-1;SK.meKey="";SK.ui={};SK.online={};SK.hasPres=false}
-function skSess(v){try{if(v)localStorage.setItem("sk_sess_v1",JSON.stringify(v));else localStorage.removeItem("sk_sess_v1")}catch(e){}}
-function skLoad(){try{return JSON.parse(localStorage.getItem("sk_sess_v1")||"null")}catch(e){return null}}
+/* ===== 多人桌遊：地下尋金者（獨立模組，沿用平台房間）=====
+   老師的裝置是裁判，不當玩家；學生用老師的房號加入。
+   公開狀態用平台廣播；每位學生的身分與手牌用「只有那位學生解得開」的加密訊息單獨傳送（WebCrypto ECDH + AES-GCM）。 */
 function skCss(){if(document.getElementById("skcss"))return;var s=document.createElement("style");s.id="skcss";s.textContent=`
 .sk{background:#2b1f17;color:#f6e7c8;border-radius:16px;padding:10px;margin:-4px -4px 0}.sk *{box-sizing:border-box}
-.sk h2{margin:4px 0;font-size:22px}.sk .big{font-size:48px;letter-spacing:8px;font-weight:800;text-align:center;color:#ffd84d}
+.sk h2{margin:4px 0;font-size:22px}
 .sk button{min-height:0;padding:8px 14px;border-radius:12px;border:2px solid #f6e7c8;background:#7a4a1e;color:#fff;font-size:16px;font-weight:700}.sk button:disabled{opacity:.4}
 .sk button.pri{background:#d9452d;border-color:#fff}.sk button.ok{background:#2f9e5a}.sk button.gh{background:#3b2a1d}
 .skhead{display:flex;flex-wrap:wrap;gap:6px 14px;font-weight:700;font-size:15px;align-items:center}.skbar{margin:6px 0;padding:6px 10px;border-radius:10px;background:#3b2a1d;font-weight:700}.skbar.me{background:#2f7a4a}
-.skmain{display:grid;gap:8px;grid-template-columns:1fr}@media(min-width:900px){.skmain{grid-template-columns:1fr 270px}}
+.skmain{display:grid;gap:8px;grid-template-columns:1fr}@media(min-width:900px){.skmain{grid-template-columns:1fr 300px}}
 .skboard{overflow:auto;border-radius:12px;background:#1c140e;border:2px solid #5a4636}.skboard svg{display:block;min-width:600px;width:100%}
 .skpl{display:flex;flex-wrap:wrap;gap:6px}.skp{flex:1 1 130px;border:2px solid #5a4636;border-radius:10px;padding:5px 8px;background:#3b2a1d;font-size:14px}.skp.turn{border-color:#ffd84d}.skp.mine{background:#4a3524}.skp.tg{border-color:#7df0a0;cursor:pointer;box-shadow:0 0 0 2px #7df0a0 inset}.skp.sel{background:#2f7a4a}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#777;margin-right:5px}.dot.on{background:#4cf07a}
 .sklog{max-height:130px;overflow:auto;font-size:13px;line-height:1.5;background:#1c140e;border-radius:10px;padding:6px 8px;margin-top:6px}
 .skinfo{margin:8px 0 4px;font-size:14px;min-height:38px}.skhand{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px}
-.skc{flex:0 0 88px;min-height:104px;border:3px solid #5a4636;border-radius:12px;background:#3b2a1d;text-align:center;padding:4px;font-size:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.skc.sel{border-color:#ffd84d;transform:translateY(-6px);background:#4a3524}
-.skc .ic{font-size:30px;line-height:1}.skctl{display:flex;flex-wrap:wrap;gap:8px;position:sticky;bottom:0;padding:6px 0;background:#2b1f17}
+.skc{flex:0 0 88px;min-height:104px;border:3px solid #5a4636;border-radius:12px;background:#3b2a1d;text-align:center;padding:4px;font-size:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.skc.sel{border-color:#ffd84d;transform:translateY(-6px);background:#4a3524}.skc .ic{font-size:30px;line-height:1}
+.skhm{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}.skhm div{width:46px;text-align:center;font-size:10px;line-height:1.1;background:#2b1f17;border-radius:6px;padding:2px}.skhm .ic{font-size:22px}
+.skctl{display:flex;flex-wrap:wrap;gap:8px;position:sticky;bottom:0;padding:6px 0;background:#2b1f17}
 .skmodal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:14px}.skmc{background:#3b2a1d;color:#f6e7c8;border:3px solid #ffd84d;border-radius:18px;padding:18px 20px;max-width:380px;width:100%;text-align:center;max-height:90vh;overflow:auto}
 .skmc .rb{font-size:56px}.skmc h2{margin:6px 0}.skt{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:70;background:#000c;color:#fff;border-radius:12px;padding:8px 16px;font-weight:700}
 `;document.head.appendChild(s)}
 function skToast(m){var d=document.createElement("div");d.className="skt";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},2600)}
-/* ---------- 連線（沿用平台的 Supabase 連線與匿名登入）---------- */
-async function skAuth(){var c=SK.client,s=(await c.auth.getSession()).data.session;if(!s){var r=await c.auth.signInAnonymously();if(r.error)throw r.error;s=r.data.session}try{c.realtime.setAuth(s.access_token)}catch(e){}SK.authed=true}
-function skConn(cb){if(SK.client&&SK.authed){cb(true);return}
- getRoom(function(R){if(!R||!R.client){cb(false,"連線服務沒有準備好，請老師檢查 config.js");return}SK.R=R;SK.client=R.client;
-  skAuth().then(function(){cb(true)},function(e){cb(false,"匿名登入失敗："+(e&&e.message||e)+"（請確認 Supabase 已開啟 Anonymous sign-ins）")})})}
-async function skCall(body){var r=await SK.client.functions.invoke("sk",{body:body});
- if(r.error){var st=r.error.context&&r.error.context.status;
-  if(st===401&&!body._r){body._r=1;SK.authed=false;try{await SK.client.auth.signOut()}catch(e){}await skAuth();
-   if(SK.token&&SK.code&&body.op!=="rejoin"){var rj=await skCall({op:"rejoin",code:SK.code,token:SK.token,_r:1});if(rj&&rj.ok)skSet(rj)}
-   return skCall(body)}
-  return{ok:false,err:"連線失敗，請檢查網路或 Edge Function 是否已部署（"+(r.error.message||st)+"）"}}
- return r.data}
-function skSet(r){if(!r)return;if(r.seat!=null){SK.seat=r.seat;if(SK.rm)try{SK.rm.presence({role:"sk",seat:SK.seat})}catch(e){}}
- if(r.token){SK.token=r.token}if(r.me){SK.me=r.me;if(r.pub)SK.meKey=skKey(r.pub)}
- if(r.pub)skApply(r.pub,r.version,true)}
-function skKey(p){return p.gid+":"+p.no+":"+p.phase}
-function skApply(pub,ver,own){if(ver!=null&&ver<SK.ver)return;if(ver!=null)SK.ver=ver;SK.pub=pub;
- if(pub.phase!=="lobby"&&SK.meKey!==skKey(pub)&&!own)skMe();skRender()}
-async function skMe(){var key=skKey(SK.pub);var r=await SK.client.from("sk_secrets").select("seat,secret").eq("code",SK.code).maybeSingle();
- if(r.data&&r.data.secret){SK.me=Object.assign({seat:r.data.seat},r.data.secret);SK.seat=r.data.seat;SK.meKey=key;skRender()}}
-async function skPoll(){if(!SK.client||!SK.code)return;var r=await SK.client.from("sk_rooms").select("pub,version").eq("code",SK.code).maybeSingle();
- if(r.error)return;if(!r.data){if(SK.pub){skToast("房間已經關閉");skSess(null);go(skEntry)}return}
- if(r.data.version>SK.ver)skApply(r.data.pub,r.data.version)}
-async function skBeat(){var r=await skCall({op:"heartbeat",code:SK.code});if(!r)return;
- if(r.ok===false&&/不在房間/.test(r.err||"")){skToast("你已經不在這個房間了");skSess(null);go(skEntry);return}
- if(r.ok&&r.version>SK.ver)skPoll();skWatchdog()}
-function skWatchdog(){var p=SK.pub;if(!p||!SK.hasPres||p.phase==="end")return;
- var alive=p.players.filter(function(x){return!x.gone&&SK.online[x.s]}).map(function(x){return x.s}).sort(function(a,b){return a-b});
- if(!SK.online[p.host]&&alive[0]===SK.seat)skCall({op:"claimHost",code:SK.code}).then(function(r){if(r&&r.ok)skSet(r)});
- if(p.phase==="play"&&p.turn!==SK.seat&&!SK.online[p.turn]&&alive[0]===SK.seat)skCall({op:"skip",code:SK.code}).then(function(r){if(r&&r.ok)skSet(r)})}
-function skEnter(){cleanup=skClean;var c=SK.client,code=SK.code;skSess({code:code,token:SK.token});
- SK.ch=c.channel("skdb-"+code+"-"+Date.now())
-  .on("postgres_changes",{event:"*",schema:"public",table:"sk_rooms",filter:"code=eq."+code},function(p){if(p.new&&p.new.pub)skApply(p.new.pub,p.new.version)})
-  .on("postgres_changes",{event:"*",schema:"public",table:"sk_secrets",filter:"code=eq."+code},function(p){if(p.new&&p.new.secret&&p.new.seat===SK.seat){SK.me=Object.assign({seat:SK.seat},p.new.secret);skRender()}}).subscribe();
- SK.timers.push(setInterval(skBeat,12000));SK.timers.push(setInterval(skPoll,4000));
- SK.R.join("sk"+code).then(function(rm){SK.rm=rm;rm.presence({role:"sk",seat:SK.seat});rm.onPeers(function(ch){var o={};(ch.peers||[]).forEach(function(p){var pr=p.presence||{};if(pr.role==="sk"&&pr.seat>=0)o[pr.seat]=1});SK.online=o;SK.hasPres=true;skRender()})}).catch(function(){});
- skRender()}
-/* ---------- 畫面：介紹、進入房間 ---------- */
-function skStart(){cleanup=function(){};skCss();
- app.innerHTML=topbar("⛏️ 地下尋金者")+'<div class="sk"><h2>⛏️ 地下尋金者</h2><p>3～10 人的祕密身分桌遊。大家被偷偷分成<b>礦工</b>和<b>破壞者</b>：礦工要合作把礦道修到藏著金礦的地方；破壞者混在其中，想辦法讓礦工挖不到。</p><p>輪流出一張牌：<b>鋪路</b>、<b>弄壞別人的工具</b>、<b>修工具</b>、<b>偷看目標</b>、<b>拆路</b>，或棄牌。沒有人知道誰是破壞者，你只能從大家做的事去推理。</p><p>每個人的手牌和身分只有自己看得到。</p><div class="skctl"><button class="pri" id="sk_go">開始遊戲</button><button class="gh" id="sk_home">返回平台首頁</button></div></div>';
- bindBack();$("#sk_go").onclick=function(){go(skEntry)};$("#sk_home").onclick=function(){go(home)}}
-function skEntry(){cleanup=function(){};skCss();var sv=skLoad();
- app.innerHTML=topbar("⛏️ 地下尋金者")+'<div class="card"><label>你的名字<input id="sk_nm" maxlength="8" value="'+esc(SK.nameSaved||sname||"")+'"></label><div style="height:10px"></div><button id="sk_new" style="width:100%">🏠 建立房間</button><div style="height:14px"></div><label>或輸入房號加入<input id="sk_code" inputmode="numeric" maxlength="4" placeholder="4 位數房號"></label><div style="height:8px"></div><button id="sk_join" style="width:100%">加入房間</button>'+(sv?'<div style="height:10px"></div><button class="ghost" id="sk_back" style="width:100%">↩ 回到房間 '+esc(sv.code)+'</button>':"")+'</div><p class="msg" id="sk_msg"></p>';
- bindBack();var msg=function(t){$("#sk_msg").textContent=t||""};
- function run(f){var nm=$("#sk_nm").value.trim();SK.nameSaved=nm;msg("連線中…");skConn(function(ok,e){if(!ok){msg(e);return}f(nm)})}
- function done(r){if(!r||!r.ok){msg((r&&r.err)||"失敗");return}SK.code=r.code;SK.token=r.token||SK.token;skSet(r);skEnter()}
- $("#sk_new").onclick=function(){run(function(nm){if(!nm){msg("請輸入名字");return}skCall({op:"create",name:nm}).then(done)})};
- $("#sk_join").onclick=function(){run(function(nm){var c=$("#sk_code").value.trim();if(!nm||!/^\d{4}$/.test(c)){msg("請輸入名字和 4 位數房號");return}skCall({op:"join",code:c,name:nm}).then(done)})};
- if(sv)$("#sk_back").onclick=function(){run(function(){SK.token=sv.token;skCall({op:"rejoin",code:sv.code,token:sv.token}).then(function(r){if(!r||!r.ok){skSess(null);msg((r&&r.err)||"無法回到房間");return}done(r)})})}}
-async function skLeave(){if(!confirm("確定要離開房間嗎？遊戲中離開後無法再回來。"))return;await skCall({op:"leave",code:SK.code});skSess(null);SK.code="";go(home)}
-/* ---------- 卡牌繪圖 ---------- */
-function skShape(sh,dead){var s='<rect width="100" height="100" fill="#5a4636"/>',T="#e8c27a",DX=SKE.DX,DY=SKE.DY;
+/* ---------- 加密（只有被指定的學生解得開）---------- */
+var SKC={ok:!!(window.crypto&&crypto.subtle),
+ b64:function(u){var s="";for(var i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s)},
+ unb64:function(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u},
+ gen:function(){return crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"},true,["deriveKey"])},
+ exp:function(k){return crypto.subtle.exportKey("jwk",k)},
+ derive:async function(priv,jwk){var pub=await crypto.subtle.importKey("jwk",jwk,{name:"ECDH",namedCurve:"P-256"},false,[]);return crypto.subtle.deriveKey({name:"ECDH",public:pub},priv,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])},
+ enc:async function(key,obj){var iv=crypto.getRandomValues(new Uint8Array(12)),ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},key,new TextEncoder().encode(JSON.stringify(obj)));return{iv:SKC.b64(iv),ct:SKC.b64(new Uint8Array(ct))}},
+ dec:async function(key,d){var pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:SKC.unb64(d.iv)},key,SKC.unb64(d.ct));return JSON.parse(new TextDecoder().decode(pt))}};
+/* ---------- 卡牌與地圖繪圖 ---------- */
+function skShape(sh){var s='<rect width="100" height="100" fill="#5a4636"/>',T="#e8c27a",DX=SKE.DX,DY=SKE.DY;
  function ln(e,len,col,w){return'<line x1="50" y1="50" x2="'+(50+DX[e]*len)+'" y2="'+(50+DY[e]*len)+'" stroke="'+col+'" stroke-width="'+w+'"/>'}
  if(!sh.groups.length){sh.open.forEach(function(o,e){if(o)s+='<line x1="'+(50+DX[e]*50)+'" y1="'+(50+DY[e]*50)+'" x2="'+(50+DX[e]*24)+'" y2="'+(50+DY[e]*24)+'" stroke="'+T+'" stroke-width="26"/>'});s+='<rect x="38" y="38" width="24" height="24" fill="#2b1f17"/><path d="M42 42L58 58M58 42L42 58" stroke="#c0392b" stroke-width="5"/>'}
  else sh.groups.forEach(function(g,i){var col=i?"#c9964a":T;g.forEach(function(e){s+=ln(e,50,col,26)});if(i)g.forEach(function(e){s+=ln(e,50,"#f3dca0",10)});s+='<rect x="37" y="37" width="26" height="26" fill="'+col+'"/>'});
@@ -875,9 +832,9 @@ function skCellG(x,y,pub,me){var B=SKE.CFG.B,S=48,px=(x-B.x0)*S,py=(y-B.y0)*S,g=
  return'<g transform="translate('+px+','+py+')"><rect width="48" height="48" fill="#26190f" stroke="#33231a" stroke-width="1"/></g>'}
 function skMini(id,rot,size){var inf=SKE.info(id);if(inf.k!=="path")return'<div class="ic">'+inf.icon+"</div>";
  return'<svg width="'+size+'" height="'+size+'" viewBox="0 0 100 100">'+skShape(SKE.shapeOf(id.slice(2),rot||0))+"</svg>"}
-function skBoard(pub,me,ui,hand){var B=SKE.CFG.B,S=48,W=(B.x1-B.x0+1)*S,H=(B.y1-B.y0+1)*S,s='<svg viewBox="0 0 '+W+" "+H+'" id="sk_svg">',x,y;
+function skBoard(pub,me,ui,hand,mine){var B=SKE.CFG.B,S=48,W=(B.x1-B.x0+1)*S,H=(B.y1-B.y0+1)*S,s='<svg viewBox="0 0 '+W+" "+H+'" id="sk_svg">',x,y;
  for(x=B.x0;x<=B.x1;x++)for(y=B.y0;y<=B.y1;y++)s+=skCellG(x,y,pub,me);
- var cardId=ui.sel!=null?hand[ui.sel]:null,inf=cardId?SKE.info(cardId):null,mine=pub.turn===SK.seat&&pub.phase==="play",hl="";
+ var cardId=ui&&ui.sel!=null?hand[ui.sel]:null,inf=cardId?SKE.info(cardId):null,hl="";
  function rect(x,y,col,k){return'<rect data-cx="'+x+'" data-cy="'+y+'" x="'+((x-B.x0)*S+2)+'" y="'+((y-B.y0)*S+2)+'" width="'+(S-4)+'" height="'+(S-4)+'" fill="'+col+'" stroke="'+k+'" stroke-width="2" style="cursor:pointer"/>'}
  if(mine&&inf){
   if(inf.k==="path"){SKE.placements(pub,cardId).forEach(function(m){if(m.r===ui.rot)hl+=rect(m.x,m.y,"rgba(125,240,160,.28)","#7df0a0")});
@@ -886,21 +843,73 @@ function skBoard(pub,me,ui,hand){var B=SKE.CFG.B,S=48,W=(B.x1-B.x0+1)*S,H=(B.y1-
   if(inf.k==="map")pub.goals.forEach(function(g,i){if(!g.t)hl+=rect(g.x,g.y,ui.goal===i?"rgba(90,170,255,.55)":"rgba(90,170,255,.22)","#5aaaff")})}
  if(pub.last&&pub.last.x!=null&&pub.board[SKE.key(pub.last.x,pub.last.y)])hl+='<rect x="'+((pub.last.x-B.x0)*S+1)+'" y="'+((pub.last.y-B.y0)*S+1)+'" width="46" height="46" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="5 3" pointer-events="none"/>';
  return s+hl+"</svg>"}
-/* ---------- 主畫面 ---------- */
-function skRender(){if(!SK.pub)return;SK.pub.phase==="lobby"?skLobby():skGame()}
-function skLobby(){var p=SK.pub,isH=p.host===SK.seat,me=p.players.find(function(x){return x.s===SK.seat})||{},n=p.players.length;
- var allReady=p.players.every(function(x){return x.s===p.host||x.ready}),can=n>=SKE.CFG.MINP&&n<=SKE.CFG.MAXP&&allReady;
- app.innerHTML=topbar("⛏️ 等待室")+'<div class="sk"><div style="text-align:center">房間代碼</div><div class="big">'+esc(SK.code)+'</div><p style="text-align:center;margin:0">把房號告訴朋友，請他在「地下尋金者」輸入</p><h2>玩家（'+n+' / '+SKE.CFG.MAXP+'）</h2><div class="skpl">'+
- p.players.map(function(x){return'<div class="skp'+(x.s===SK.seat?" mine":"")+'"><span class="dot'+(SK.online[x.s]||!SK.hasPres&&x.s===SK.seat?" on":"")+'"></span>'+(x.s===p.host?"👑 ":"")+esc(x.name)+(x.s===SK.seat?"（你）":"")+"<br>"+(x.s===p.host?"房主":x.ready?"✅ 已準備":"⏳ 尚未準備")+(isH&&x.s!==SK.seat?' <button class="gh" data-kick="'+x.s+'" style="padding:2px 8px;font-size:13px">請出</button>':"")+"</div>"}).join("")+'</div><p class="skbar">'+(n<SKE.CFG.MINP?"至少需要 "+SKE.CFG.MINP+" 位玩家才能開始（目前 "+n+" 人）":!allReady?"等待所有玩家按「準備」":isH?"人數與準備狀態都符合，房主可以開始！":"等待房主開始遊戲…")+'</p><div class="skctl">'+
- (isH?'<button class="pri" id="sk_start"'+(can?"":" disabled")+">開始遊戲</button>":'<button class="'+(me.ready?"gh":"ok")+'" id="sk_ready">'+(me.ready?"取消準備":"我準備好了")+"</button>")+'<button class="gh" id="sk_leave">離開房間</button><button class="gh" id="sk_home">返回平台首頁</button></div></div>';
- bindBack();skBind()}
-function skBind(){var e;
- [].forEach.call(app.querySelectorAll("[data-kick]"),function(b){b.onclick=function(){skCall({op:"kick",code:SK.code,seat:+b.dataset.kick}).then(function(r){if(r.ok)skSet(r);else skToast(r.err)})}});
- if(e=$("#sk_ready"))e.onclick=function(){var me=SK.pub.players.find(function(x){return x.s===SK.seat});skCall({op:"ready",code:SK.code,ready:me.ready?0:1}).then(function(r){if(r.ok)skSet(r);else skToast(r.err)})};
- if(e=$("#sk_start"))e.onclick=function(){e.disabled=true;skCall({op:"start",code:SK.code}).then(function(r){if(r.ok){SK.roleShown="";skSet(r)}else{skToast(r.err);skRender()}})};
- if(e=$("#sk_again"))e.onclick=function(){skCall({op:"again",code:SK.code}).then(function(r){if(r.ok){SK.roleShown="";SK.ui={};skSet(r)}else skToast(r.err)})};
- [].forEach.call(app.querySelectorAll("[id=sk_leave]"),function(b){b.onclick=skLeave});[].forEach.call(app.querySelectorAll("[id=sk_home]"),function(b){b.onclick=function(){go(home)}})}
-function skSelect(i){var ui=SK.ui;ui.sel=ui.sel===i?null:i;ui.rot=0;ui.px=ui.py=ui.tp=ui.tool=ui.goal=null;skRender()}
+function skToolsHtml(x){return SKE.TOOLS.map(function(t){return"<span>"+SKE.TI[t]+(x.br[t]?"❌":"")+"</span>"}).join(" ")}
+function skLogHtml(pub){return pub.log.slice().reverse().slice(0,25).map(function(l){return"<div>"+esc(l.t)+"</div>"}).join("")}
+function skEndHtml(pub,btns){var r=pub.result,w=r.winner==="miner"?"⛏️ 礦工獲勝！":r.winner==="saboteur"?"🕳️ 破壞者獲勝！":"遊戲結束";
+ return'<div class="skmodal"><div class="skmc"><h2>'+w+"</h2><p>"+esc(r.reason)+'</p><div style="text-align:left;font-size:15px;line-height:1.8">'+r.roles.map(function(x){return(x.role==="miner"?"⛏️ ":"🕳️ ")+esc(pub.players[x.s].name)+"："+(x.role==="miner"?"礦工":"破壞者")}).join("<br>")+"</div><p>目標："+r.goals.map(function(t){return SKE.GI[t]+SKE.GN[t]}).join("、")+'</p><div class="skctl" style="justify-content:center;position:static">'+btns+"</div></div></div>"}
+/* ---------- 老師：裁判兼觀看畫面（不當玩家）---------- */
+function skHost(X){
+ var rm=X.rm,mine=[],st=null,peerOfSeat=[],seatOfPeer={},origName=[],keyOf={},lastPriv={},kp=null,hjwk=null,show={hand:1,role:0},off={},timers=[],oc=cleanup,statDone="",
+  rng=function(){return crypto.getRandomValues(new Uint32Array(1))[0]/4294967296},live=function(){return X.getLive()};
+ skCss();X.setMode("sk");
+ cleanup=function(){timers.forEach(clearInterval);if(oc)oc()};
+ async function begin(){
+  var P=X.getP(),ids=Object.keys(P);if(ids.length<SKE.CFG.MINP||ids.length>SKE.CFG.MAXP){skToast("需要 "+SKE.CFG.MINP+"～"+SKE.CFG.MAXP+" 位學生");return false}
+  var names=[],dup={};origName=ids.map(function(k){return P[k]});ids.forEach(function(k){var n=P[k];dup[n]=(dup[n]||0)+1;names.push(dup[n]>1?n+dup[n]:n)});
+  st=SKE.newGame(names,rng,0);peerOfSeat=ids.slice();seatOfPeer={};ids.forEach(function(k,i){seatOfPeer[k]=i});lastPriv={};off={};statDone="";
+  if(SKC.ok&&!kp){kp=await SKC.gen();hjwk=await SKC.exp(kp.publicKey)}
+  hello();pushAll();render();return true}
+ function hello(){rm.emit("skhello",{pub:hjwk||{},gid:st.pub.gid}).catch(function(){})}
+ async function sendPriv(seat,force){var peer=peerOfSeat[seat],key=keyOf[peer];if(!key)return;
+  var obj={seat:seat,gid:st.pub.gid,role:st.sec[seat].role,hand:st.sec[seat].hand,peeks:st.sec[seat].peeks},str=JSON.stringify(obj);if(!force&&lastPriv[seat]===str)return;lastPriv[seat]=str;
+  var pl=key==="plain"?{to:peer,p:obj}:Object.assign({to:peer},await SKC.enc(key,obj));rm.emit("skp",pl).catch(function(){})}
+ function pushPub(){rm.emit("skst",{pub:st.pub}).catch(function(){})}
+ function pushAll(){pushPub();for(var i=0;i<st.pub.n;i++)sendPriv(i,false)}
+ function finishStats(){if(st.pub.phase!=="end"||statDone===st.pub.gid)return;statDone=st.pub.gid;var w=st.pub.result.winner;
+  st.pub.players.forEach(function(p,i){try{addStat("sk",p.name,(w===st.sec[i].role)?1:0,1)}catch(e){}})}
+ timers.push(setInterval(function(){if(!st||st.pub.phase!=="play")return;
+  var missing=peerOfSeat.some(function(p){return live()[p]&&!keyOf[p]});if(missing)hello();
+  var seat=st.pub.turn,p=peerOfSeat[seat],now=Date.now();
+  if(!live()[p]){off[seat]=off[seat]||now;if(now-off[seat]>40000){off[seat]=0;SKE.autoSkip(st,rng);pushAll();render()}}else off[seat]=0},3000));
+ unsubPush(rm.on("skkey",async function(m){var d=m.data;if(!st||!d||!d.pub||!d.name)return;var peer=m.peer,seat=seatOfPeer[peer];
+  if(seat==null){for(var i=0;i<origName.length;i++)if(origName[i]===d.name&&!live()[peerOfSeat[i]]){seat=i;break}
+   if(seat==null)return;delete seatOfPeer[peerOfSeat[seat]];peerOfSeat[seat]=peer;seatOfPeer[peer]=seat}
+  try{keyOf[peer]=(SKC.ok&&d.pub.kty)?await SKC.derive(kp.privateKey,d.pub):"plain"}catch(e){keyOf[peer]="plain"}
+  pushPub();await sendPriv(seat,true);render()}));
+ unsubPush(rm.on("ska",function(m){if(!st)return;var seat=seatOfPeer[m.peer];if(seat==null||!m.data)return;
+  var r=SKE.act(st,seat,m.data.a,rng);if(!r.ok){rm.emit("skerr",{to:m.peer,err:r.err}).catch(function(){});return}
+  off[seat]=0;pushAll();finishStats();render()}));
+ unsubPush(rm.onPeers(function(){if(st&&st.pub.phase!=="lobby"){hello();render()}}));
+ function unsubPush(f){X.unsub.push(f);mine.push(f)}
+ function end(){timers.forEach(clearInterval);timers=[];mine.forEach(function(f){try{f()}catch(e){}});mine=[];cleanup=oc;st=null;rm.emit("skend",{}).catch(function(){});X.back()}
+ function render(){if(!st)return;var pub=st.pub,tp=pub.players[pub.turn]||{name:"?"};
+  var chips=pub.players.map(function(x,i){var hand=st.sec[i].hand;
+   return'<div class="skp'+(i===pub.turn&&pub.phase==="play"?" turn":"")+'"><span class="dot'+(live()[peerOfSeat[i]]?" on":"")+'"></span>'+(i===pub.turn&&pub.phase==="play"?"▶ ":"")+esc(x.name)+(show.role?(st.sec[i].role==="miner"?" ⛏️礦工":" 🕳️破壞者"):"")+"<br>"+skToolsHtml(x)+" 🂠"+hand.length+
+    (show.hand?'<div class="skhm">'+hand.map(function(c){return"<div>"+skMini(c,0,32)+"<div>"+esc(SKE.info(c).name.replace(/（.*/,"").replace(/^死路・/,"死"))+"</div></div>"}).join("")+"</div>":"")+"</div>"}).join("");
+  app.innerHTML=topbar("⛏️ 地下尋金者（主持）")+'<div class="sk"><div class="skhead"><span>👥 '+pub.n+' 位玩家</span><span>第 '+pub.no+' 回合</span><span>🂠 牌庫 '+pub.deckLeft+'</span></div><div class="skbar">'+(pub.phase==="end"?"遊戲結束":"⏳ 輪到 "+esc(tp.name))+'</div><div class="skmain"><div class="skboard">'+skBoard(pub,null,null,[],false)+'</div><div><div class="skpl">'+chips+'</div><div class="sklog">'+skLogHtml(pub)+'</div></div></div><div class="skctl"><button class="gh" id="sk_th">'+(show.hand?"隱藏":"顯示")+'玩家手牌</button><button class="gh" id="sk_tr">'+(show.role?"隱藏":"顯示")+'身分</button><button class="gh" id="sk_sk"'+(pub.phase==="play"?"":" disabled")+'>跳過此人</button><button class="gh" id="sk_x">結束並回主持畫面</button></div></div>'+(pub.phase==="end"?skEndHtml(pub,'<button class="pri" id="sk_again">再玩一局</button><button class="gh" id="sk_x2">回主持畫面</button>'):"");
+  bindBack();$("#sk_th").onclick=function(){show.hand=show.hand?0:1;render()};$("#sk_tr").onclick=function(){show.role=show.role?0:1;render()};
+  $("#sk_sk").onclick=function(){if(st.pub.phase!=="play")return;SKE.autoSkip(st,rng);pushAll();render()};
+  $("#sk_x").onclick=end;if($("#sk_x2"))$("#sk_x2").onclick=end;
+  if($("#sk_again"))$("#sk_again").onclick=function(){begin()}}
+ begin().then(function(okk){if(!okk)X.back()});
+ return{get st(){return st},begin:begin,render:render}}
+/* ---------- 學生：只看得到自己的牌 ---------- */
+function skStudent(rm,myName,unsub,meId,onEnd){
+ meId=meId||myId;var S={pub:null,me:null,ui:{},kp:null,key:null,jwk:null,roleShown:"",peekRole:false,busy:false,seenPeeks:{}};
+ S.send=function(a){if(S.busy)return;S.busy=true;rm.emit("ska",{a:a}).catch(function(){});setTimeout(function(){S.busy=false},1200)};
+ unsub.push(rm.on("skhello",async function(m){var d=m.data;if(!d||!d.pub)return;
+  try{if(SKC.ok&&d.pub.kty){if(!S.kp){S.kp=await SKC.gen();S.jwk=await SKC.exp(S.kp.publicKey)}S.key=await SKC.derive(S.kp.privateKey,d.pub)}}catch(e){S.key=null}
+  rm.emit("skkey",{pub:S.key?S.jwk:{},name:myName}).catch(function(){})}));
+ unsub.push(rm.on("skp",async function(m){var d=m.data;if(!d||d.to!==meId)return;var o=null;
+  try{o=d.p?d.p:await SKC.dec(S.key,d)}catch(e){return}
+  if(!o)return;S.me=o;Object.keys(o.peeks||{}).forEach(function(g){if(!S.seenPeeks[o.gid+g]){S.seenPeeks[o.gid+g]=1;skToast("🗺️ 目標 "+(+g+1)+"："+SKE.GI[o.peeks[g]]+SKE.GN[o.peeks[g]])}});S.render()}));
+ unsub.push(rm.on("skst",function(m){var d=m.data;if(!d||!d.pub)return;var old=S.pub;S.pub=d.pub;if(!old||old.gid!==d.pub.gid||old.turn!==d.pub.turn||old.no!==d.pub.no){S.ui={};S.busy=false}
+  if(!old||old.gid!==d.pub.gid){S.roleShown="";S.me=null}S.render()}));
+ unsub.push(rm.on("skend",function(){S.pub=null;S.me=null;S.ui={};if(onEnd)onEnd()}));
+ unsub.push(rm.on("skerr",function(m){var d=m.data;if(d&&d.to===meId){S.busy=false;skToast(d.err||"不能這樣出牌")}}));
+ S.render=function(){if(!S.pub)return;skCss();skPlayerView(S)};
+ return S}
+function skSelect(S,i){var ui=S.ui;ui.sel=ui.sel===i?null:i;ui.rot=0;ui.px=ui.py=ui.tp=ui.tool=ui.goal=null;S.render()}
 function skReady(ui,hand,pub){if(ui.sel==null)return null;var c=hand[ui.sel],inf=SKE.info(c),a={card:c};
  if(inf.k==="path"){if(ui.px==null)return null;a.type="place";a.x=ui.px;a.y=ui.py;a.r=ui.rot}
  else if(inf.k==="break"){if(ui.tp==null)return null;a.type="break";a.target=ui.tp}
@@ -908,34 +917,32 @@ function skReady(ui,hand,pub){if(ui.sel==null)return null;var c=hand[ui.sel],inf
  else if(inf.k==="map"){if(ui.goal==null)return null;a.type="map";a.goal=ui.goal}
  else if(inf.k==="collapse"){if(ui.px==null)return null;a.type="collapse";a.x=ui.px;a.y=ui.py}
  else if(inf.k==="supply")a.type="supply";return a}
-async function skAct(a){if(SK.busy)return;SK.busy=true;var r=await skCall({op:"act",code:SK.code,a:a});SK.busy=false;
- if(!r.ok){skToast(r.err||"失敗");skRender();return}SK.ui={};skSet(r);if(r.priv){var g=r.priv.goal+1;skToast("🗺️ 目標 "+g+"："+SKE.GI[r.priv.t]+SKE.GN[r.priv.t])}}
-function skGame(){var pub=SK.pub,me=SK.me||{hand:[],peeks:{}},hand=me.hand||[],ui=SK.ui,mine=pub.turn===SK.seat&&pub.phase==="play",tp=pub.players[pub.turn]||{name:"?"},sel=ui.sel!=null?hand[ui.sel]:null,inf=sel?SKE.info(sel):null;
- if(sel===undefined||ui.sel!=null&&!sel){ui.sel=null;sel=null;inf=null}
- var chips=pub.players.map(function(x){var tg=false;if(mine&&inf&&x.s!==SK.seat&&inf.k==="break"&&!x.br[inf.tool]&&!x.gone)tg=true;if(mine&&inf&&inf.k==="repair"&&inf.tools.some(function(t){return x.br[t]}))tg=true;
-  return'<div class="skp'+(x.s===pub.turn?" turn":"")+(x.s===SK.seat?" mine":"")+(tg?" tg":"")+(ui.tp===x.s?" sel":"")+'" data-tp="'+x.s+'"><span class="dot'+(SK.online[x.s]||!SK.hasPres&&x.s===SK.seat?" on":"")+'"></span>'+(x.s===pub.host?"👑":"")+(x.s===pub.turn?"▶ ":"")+esc(x.name)+(x.s===SK.seat?"（你）":"")+(x.gone?" 🚪離開":"")+"<br>"+SKE.TOOLS.map(function(t){return'<span style="opacity:'+(x.br[t]?.9:1)+'">'+SKE.TI[t]+(x.br[t]?"❌":"")+"</span>"}).join(" ")+" 🂠"+x.hc+"</div>"}).join("");
+function skPlayerView(S){var pub=S.pub,me=S.me;
+ if(!me){app.innerHTML='<div class="sk"><h2>⛏️ 地下尋金者</h2><p>正在取得你的牌…（若一直停在這裡，請老師確認你還在房間裡）</p></div>';return}
+ var seat=me.seat,hand=me.hand||[],ui=S.ui,mine=pub.turn===seat&&pub.phase==="play",tp=pub.players[pub.turn]||{name:"?"},sel=ui.sel!=null?hand[ui.sel]:null;
+ if(ui.sel!=null&&!sel){ui.sel=null;sel=null}var inf=sel?SKE.info(sel):null;
+ var chips=pub.players.map(function(x){var tg=false;if(mine&&inf&&x.s!==seat&&inf.k==="break"&&!x.br[inf.tool]&&!x.gone)tg=true;if(mine&&inf&&inf.k==="repair"&&inf.tools.some(function(t){return x.br[t]}))tg=true;
+  return'<div class="skp'+(x.s===pub.turn?" turn":"")+(x.s===seat?" mine":"")+(tg?" tg":"")+(ui.tp===x.s?" sel":"")+'" data-tp="'+x.s+'">'+(x.s===pub.turn&&pub.phase==="play"?"▶ ":"")+esc(x.name)+(x.s===seat?"（你）":"")+(x.gone?" 🚪":"")+"<br>"+skToolsHtml(x)+" 🂠"+x.hc+"</div>"}).join("");
  var hh=hand.map(function(c,i){var ci=SKE.info(c);return'<div class="skc'+(ui.sel===i?" sel":"")+'" data-hi="'+i+'">'+skMini(c,ui.sel===i?ui.rot:0,44)+"<div>"+esc(ci.name.replace(/（.*/,""))+"</div></div>"}).join("")||'<div style="padding:12px">沒有手牌了</div>';
  var tools="";if(mine&&inf&&inf.k==="repair"&&ui.tp!=null){var t2=pub.players[ui.tp],okt=inf.tools.filter(function(x){return t2.br[x]});if(okt.length>1)tools=okt.map(function(x){return'<button class="'+(ui.tool===x?"ok":"gh")+'" data-tool="'+x+'">修'+SKE.TN[x]+SKE.TI[x]+"</button>"}).join(" ")}
  var tip=!mine?(pub.phase==="play"?"等待 "+esc(tp.name)+" 行動…":""):!inf?"輪到你了！選一張手牌":inf.k==="path"?"點地圖上的綠色格子放置，可用「旋轉」換方向":inf.k==="break"?"點選要破壞的玩家":inf.k==="repair"?"點選要修復的玩家":inf.k==="map"?"點選要偷看的目標（藍框）":inf.k==="collapse"?"點選要拆掉的道路牌（紅框）":"按「確認出牌」打開補給箱";
  var rd=mine?skReady(ui,hand,pub):null;
- app.innerHTML='<div class="sk skg"><div class="skhead"><span>⛏️ 地下尋金者</span><span>👥 '+pub.n+" 人</span><span>第 "+pub.no+" 回合</span><span>🂠 牌庫 "+pub.deckLeft+'</span><span>房號 '+esc(SK.code)+'</span></div><div class="skbar'+(mine?" me":"")+'">'+(pub.phase==="end"?"遊戲結束":mine?"🟢 輪到你了！":"⏳ 輪到 "+esc(tp.name))+" ｜ "+tip+'</div><div class="skmain"><div class="skboard">'+skBoard(pub,me,ui,hand)+'</div><div><div class="skpl">'+chips+'</div><div class="sklog" id="sk_log">'+pub.log.slice().reverse().slice(0,25).map(function(l){return"<div>"+esc(l.t)+"</div>"}).join("")+'</div></div></div><div class="skinfo">'+(inf?"<b>"+skNameFull(sel)+"</b>："+inf.desc:"點選下方手牌查看說明")+(tools?"<div>"+tools+"</div>":"")+'</div><div class="skhand">'+hh+'</div><div class="skctl"><button class="gh" id="sk_rot"'+(mine&&inf&&inf.k==="path"?"":" disabled")+'>🔄 旋轉</button><button class="pri" id="sk_ok"'+(rd?"":" disabled")+'>確認出牌（結束回合）</button><button class="gh" id="sk_dis"'+(mine&&inf?"":" disabled")+'>棄牌</button><button class="gh" id="sk_role">🎭 我的身分</button><button class="gh" id="sk_leave">離開</button><button class="gh" id="sk_home">平台首頁</button></div></div>'+skModals(pub);
- skBind();
- [].forEach.call(app.querySelectorAll("[data-hi]"),function(e){e.onclick=function(){if(pub.phase==="play")skSelect(+e.dataset.hi)}});
- [].forEach.call(app.querySelectorAll("[data-tp]"),function(e){e.onclick=function(){if(e.classList.contains("tg")){ui.tp=+e.dataset.tp;ui.tool=null;skRender()}}});
- [].forEach.call(app.querySelectorAll("[data-tool]"),function(e){e.onclick=function(){ui.tool=e.dataset.tool;skRender()}});
+ app.innerHTML='<div class="sk"><div class="skhead"><span>⛏️ 地下尋金者</span><span>👥 '+pub.n+" 人</span><span>第 "+pub.no+" 回合</span><span>🂠 牌庫 "+pub.deckLeft+'</span></div><div class="skbar'+(mine?" me":"")+'">'+(pub.phase==="end"?"遊戲結束":mine?"🟢 輪到你了！":"⏳ 輪到 "+esc(tp.name))+" ｜ "+tip+'</div><div class="skmain"><div class="skboard">'+skBoard(pub,me,ui,hand,mine)+'</div><div><div class="skpl">'+chips+'</div><div class="sklog">'+skLogHtml(pub)+'</div></div></div><div class="skinfo">'+(inf?"<b>"+inf.name+"</b>："+inf.desc:"點選下方手牌查看說明")+(tools?"<div>"+tools+"</div>":"")+'</div><div class="skhand">'+hh+'</div><div class="skctl"><button class="gh" id="sk_rot"'+(mine&&inf&&inf.k==="path"?"":" disabled")+'>🔄 旋轉</button><button class="pri" id="sk_ok"'+(rd?"":" disabled")+'>確認出牌（結束回合）</button><button class="gh" id="sk_dis"'+(mine&&inf?"":" disabled")+'>棄牌</button><button class="gh" id="sk_role">🎭 我的身分</button><button class="gh" id="sk_home">離開</button></div></div>'+skPlayerModals(S);
+ [].forEach.call(app.querySelectorAll("[data-hi]"),function(e){e.onclick=function(){if(pub.phase==="play")skSelect(S,+e.dataset.hi)}});
+ [].forEach.call(app.querySelectorAll("[data-tp]"),function(e){e.onclick=function(){if(e.classList.contains("tg")){ui.tp=+e.dataset.tp;ui.tool=null;S.render()}}});
+ [].forEach.call(app.querySelectorAll("[data-tool]"),function(e){e.onclick=function(){ui.tool=e.dataset.tool;S.render()}});
  var sv=$("#sk_svg");if(sv)sv.onclick=function(ev){var d=ev.target.dataset;if(!d||d.cx==null||!mine||!inf)return;var x=+d.cx,y=+d.cy;
-  if(inf.k==="map"){var gi=SKE.goalAt(pub,x,y);if(gi>=0){ui.goal=gi;skRender()}}else{ui.px=x;ui.py=y;skRender()}};
- if($("#sk_rot"))$("#sk_rot").onclick=function(){ui.rot=(ui.rot+1)%4;ui.px=ui.py=null;skRender()};
- if($("#sk_ok"))$("#sk_ok").onclick=function(){if(rd)skAct(rd)};
- if($("#sk_dis"))$("#sk_dis").onclick=function(){if(sel)skAct({type:"discard",card:sel})};
- if($("#sk_role"))$("#sk_role").onclick=function(){SK.peekRole=true;skRender();setTimeout(function(){SK.peekRole=false;skRender()},3500)};
- [].forEach.call(app.querySelectorAll("[data-close]"),function(e){e.onclick=function(){if(e.dataset.close==="role"){SK.roleShown=pub.gid;SK.peekRole=false}skRender()}})}
-function skNameFull(c){return SKE.info(c).name}
-function skModals(pub){var me=SK.me,h="";
- if(pub.phase==="play"&&me&&me.role&&(SK.roleShown!==pub.gid||SK.peekRole)){var m=me.role==="miner";
-  h+='<div class="skmodal"><div class="skmc"><div class="rb">'+(m?"⛏️":"🕳️")+"</div><h2>你是"+(m?"礦工":"破壞者")+"</h2><p>"+(m?"和大家合作，把礦道修到金礦。你不知道誰是破壞者，小心被破壞者誤導！":"悄悄阻止礦工找到金礦：弄壞工具、鋪死路、拆掉道路。你不知道其他破壞者是誰，別被抓到！")+'</p><p style="font-size:13px;opacity:.8">別讓旁邊的人看到你的畫面。</p><button class="pri" data-close="role">'+(SK.peekRole&&SK.roleShown===pub.gid?"關閉":"我知道了")+"</button></div></div>"}
- if(pub.phase==="end"&&pub.result){var r=pub.result,w=r.winner==="miner"?"⛏️ 礦工獲勝！":r.winner==="saboteur"?"🕳️ 破壞者獲勝！":"遊戲結束";
-  h+='<div class="skmodal"><div class="skmc"><h2>'+w+"</h2><p>"+esc(r.reason)+'</p><div style="text-align:left;font-size:15px;line-height:1.8">'+r.roles.map(function(x){return(x.role==="miner"?"⛏️ ":"🕳️ ")+esc(pub.players[x.s].name)+"："+(x.role==="miner"?"礦工":"破壞者")}).join("<br>")+"</div><p>目標："+r.goals.map(function(t){return SKE.GI[t]+SKE.GN[t]}).join("、")+'</p><div class="skctl" style="justify-content:center;position:static">'+(pub.host===SK.seat?'<button class="pri" id="sk_again">再玩一局</button>':"<span>等房主開始下一局…</span>")+'<button class="gh" id="sk_leave">離開房間</button><button class="gh" id="sk_home">平台首頁</button></div></div></div>'}
+  if(inf.k==="map"){var gi=SKE.goalAt(pub,x,y);if(gi>=0){ui.goal=gi;S.render()}}else{ui.px=x;ui.py=y;S.render()}};
+ if($("#sk_rot"))$("#sk_rot").onclick=function(){ui.rot=(ui.rot+1)%4;ui.px=ui.py=null;S.render()};
+ if($("#sk_ok"))$("#sk_ok").onclick=function(){if(rd)S.send(rd)};
+ if($("#sk_dis"))$("#sk_dis").onclick=function(){if(sel)S.send({type:"discard",card:sel})};
+ if($("#sk_role"))$("#sk_role").onclick=function(){S.peekRole=true;S.render();setTimeout(function(){S.peekRole=false;S.render()},3500)};
+ [].forEach.call(app.querySelectorAll("[id=sk_home]"),function(b){b.onclick=function(){if(confirm("要離開遊戲嗎？之後用同樣的名字重新加入房間，可以回到你的座位。"))go(home)}});
+ [].forEach.call(app.querySelectorAll("[data-close]"),function(e){e.onclick=function(){S.roleShown=pub.gid;S.peekRole=false;S.render()}})}
+function skPlayerModals(S){var pub=S.pub,me=S.me,h="";
+ if(pub.phase==="play"&&me&&me.role&&(S.roleShown!==pub.gid||S.peekRole)){var m=me.role==="miner";
+  h+='<div class="skmodal"><div class="skmc"><div class="rb">'+(m?"⛏️":"🕳️")+"</div><h2>你是"+(m?"礦工":"破壞者")+"</h2><p>"+(m?"和大家合作，把礦道修到金礦。你不知道誰是破壞者，小心被破壞者誤導！":"悄悄阻止礦工找到金礦：弄壞工具、鋪死路、拆掉道路。你不知道其他破壞者是誰，別被抓到！")+'</p><p style="font-size:13px;opacity:.8">別讓旁邊的人看到你的畫面。</p><button class="pri" data-close="role">'+(S.peekRole&&S.roleShown===pub.gid?"關閉":"我知道了")+"</button></div></div>"}
+ if(pub.phase==="end"&&pub.result)h+=skEndHtml(pub,'<span>等老師開始下一局…</span><button class="gh" id="sk_home">離開</button>');
  return h}
 
 
@@ -1797,7 +1804,6 @@ function getRoom(cb){
       if(status==="SUBSCRIBED"&&!ok){ok=true;clearTimeout(tm);res(room)}
       else if(!ok&&(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED")){clearTimeout(tm);rej(new Error(status+(err&&err.message?"："+err.message:"")))}});
   })}};
-  roomApi.client=client; // 提供給需要資料表與匿名登入的遊戲模組（地下尋金者）使用，不影響其他遊戲
   cb(roomApi);
 }
 function noRoom(e){var C=window.GAME_CONFIG||{},why=window.__roomErr||(e&&e.message)||"連線失敗";
@@ -1819,11 +1825,11 @@ function host(){
     }).catch(function(e){noRoom(e)});
     function lobby(){
       var names=Object.keys(players).map(function(k){return players[k]});
-      app.innerHTML=topbar("👩‍🏫 主持")+'<p class="msg">請學生輸入房號</p><div class="big">'+code+'</div><div class="card"><b>已加入（'+names.length+'）</b><br>'+names.map(function(x){return '<span class="pill">'+esc(x)+'</span>'}).join("")+'</div><div class="card" style="margin-top:10px"><b>選擇題搶答設定</b><div class="row" style="margin-top:8px"><label style="flex:1">題數（最多 '+bank.length+'）<input id="cq" type="number" min="1" max="50" value="'+cfg.n+'"></label><label style="flex:1">每題分數<input id="cp" type="number" min="1" max="100" value="'+cfg.pt+'"></label></div><label style="display:flex;align-items:center;gap:8px;margin:10px 0"><input id="cb" type="checkbox" style="width:auto"'+(cfg.bonus?" checked":"")+'>前三名最快答對加分</label><div class="row"><label style="flex:1">第 1 名 +<input id="cb1" type="number" min="0" max="100" value="'+cfg.b[0]+'"></label><label style="flex:1">第 2 名 +<input id="cb2" type="number" min="0" max="100" value="'+cfg.b[1]+'"></label><label style="flex:1">第 3 名 +<input id="cb3" type="number" min="0" max="100" value="'+cfg.b[2]+'"></label></div></div><div class="row" style="margin-top:10px"><button id="start" '+(names.length&&bank.length>=4?"":"disabled")+'>選擇題搶答</button><button id="sstart" '+(names.length&&bank.length>=4?"":"disabled")+'>🐍 蛇棋</button><button id="pstart" '+(names.length&&bank.length>=4?"":"disabled")+'>💣 戳戳樂</button></div>'+(bank.length<4?'<p class="msg">題庫至少要 4 題</p>':"");
+      app.innerHTML=topbar("👩‍🏫 主持")+'<p class="msg">請學生輸入房號</p><div class="big">'+code+'</div><div class="card"><b>已加入（'+names.length+'）</b><br>'+names.map(function(x){return '<span class="pill">'+esc(x)+'</span>'}).join("")+'</div><div class="card" style="margin-top:10px"><b>選擇題搶答設定</b><div class="row" style="margin-top:8px"><label style="flex:1">題數（最多 '+bank.length+'）<input id="cq" type="number" min="1" max="50" value="'+cfg.n+'"></label><label style="flex:1">每題分數<input id="cp" type="number" min="1" max="100" value="'+cfg.pt+'"></label></div><label style="display:flex;align-items:center;gap:8px;margin:10px 0"><input id="cb" type="checkbox" style="width:auto"'+(cfg.bonus?" checked":"")+'>前三名最快答對加分</label><div class="row"><label style="flex:1">第 1 名 +<input id="cb1" type="number" min="0" max="100" value="'+cfg.b[0]+'"></label><label style="flex:1">第 2 名 +<input id="cb2" type="number" min="0" max="100" value="'+cfg.b[1]+'"></label><label style="flex:1">第 3 名 +<input id="cb3" type="number" min="0" max="100" value="'+cfg.b[2]+'"></label></div></div><div class="row" style="margin-top:10px"><button id="start" '+(names.length&&bank.length>=4?"":"disabled")+'>選擇題搶答</button><button id="sstart" '+(names.length&&bank.length>=4?"":"disabled")+'>🐍 蛇棋</button><button id="pstart" '+(names.length&&bank.length>=4?"":"disabled")+'>💣 戳戳樂</button><button id="skstart" '+(names.length>=3&&names.length<=10?"":"disabled")+'>⛏️ 地下尋金者（3～10 人）</button></div>'+(bank.length<4?'<p class="msg">題庫至少要 4 題</p>':"");
       bindBack();
       function rd(){var v=function(id,d,mn,mx){var x=parseInt($(id).value);return isFinite(x)?Math.max(mn,Math.min(mx,x)):d};cfg.n=v("#cq",10,1,50);cfg.pt=v("#cp",1,1,100);cfg.bonus=$("#cb").checked?1:0;cfg.b=[v("#cb1",3,0,100),v("#cb2",2,0,100),v("#cb3",1,0,100)]}
       ["#cq","#cp","#cb","#cb1","#cb2","#cb3"].forEach(function(id){$(id).onchange=rd});
-      $("#start").onclick=function(){rd();mode="quiz";scores={};corr={};n=0;qTot=Math.min(cfg.n,bank.length);ask(shuf(bank).slice(0,qTot).map(mk))};$("#sstart").onclick=startSnake;$("#pstart").onclick=startPoke;
+      $("#start").onclick=function(){rd();mode="quiz";scores={};corr={};n=0;qTot=Math.min(cfg.n,bank.length);ask(shuf(bank).slice(0,qTot).map(mk))};$("#sstart").onclick=startSnake;$("#pstart").onclick=startPoke;$("#skstart").onclick=function(){skHost({rm:rm,getP:function(){return players},getLive:function(){return live},unsub:unsub,setMode:function(m){mode=m},back:function(){mode="lobby";lobby()}})};
     }
     function ask(qs){
       if(n>=qs.length){finish();return}
@@ -1961,7 +1967,7 @@ function join(){
       var rm=null,unsub=[],myName=name,score=0;
       cleanup=function(){unsub.forEach(function(f){try{f()}catch(e){}});if(rm)try{rm.leave()}catch(e){}};
       app.innerHTML=topbar("🙋 "+nz(name))+'<p class="msg">連線中…</p>';bindBack();
-      R.join("g"+code).then(function(r){rm=r;rm.presence({role:"p",name:myName});wait("已加入！等老師開始…");
+      R.join("g"+code).then(function(r){rm=r;rm.presence({role:"p",name:myName});wait("已加入！等老師開始…");skStudent(rm,myName,unsub,myId,function(){wait("老師結束了這個遊戲，等老師開始下一個…")});
         unsub.push(rm.on("q",function(m){var d=m.data;if(!d||!d.opts)return;
           app.innerHTML=topbar("第 "+(d.n+1)+" / "+d.total+" 題・"+esc(myName))+'<div class="q">'+esc(d.q)+'</div><div class="opts">'+d.opts.map(function(o){return '<button data-o="'+esc(o)+'">'+esc(o)+'</button>'}).join("")+'</div>';bindBack();
           app.querySelectorAll("[data-o]").forEach(function(b){b.onclick=function(){app.querySelectorAll("[data-o]").forEach(function(x){x.disabled=true});b.style.borderColor="var(--pri)";rm.emit("ans",{n:d.n,c:b.dataset.o,name:myName}).catch(function(){});}});}));
