@@ -63,4 +63,18 @@ t("關卡產生：可解且種子可重現",()=>{for(let d=0;d<3;d++)for(let sd=
    assert(placed)}
   run(s,500);assert.equal(s.status,"won","diff"+d+" seed"+sd)}
  assert.deepEqual(E.makeLevel(1,7),E.makeLevel(1,7))});
+t("庫存＝路線需求＋備用，且總量遠少於舊的 36 根",()=>{for(let d=0;d<3;d++)for(let sd=1;sd<=50;sd++){const L=E.makeLevel(d,sd),v=L.inv,D=E.DIFFS[d];
+ assert.equal(v.tee,D.tee);assert.equal(v.cross,D.cross);assert(v.straight+v.elbow===L.path.length+2*D.slack);assert(v.straight>=3&&v.elbow>=D.slack)}});
+t("等待回合：初級5／中級4／高級3，之後每回合最多一格",()=>{[5,4,3].forEach((w,d)=>{const L=E.makeLevel(d,9);assert.equal(L.delay,w);const s=E.createGame(L);
+ for(let i=0;i<w;i++)E.tick(s);assert.equal(s.tick,0);assert.equal(s.fronts[0].src,true);assert.equal(s.status,"flow")})});
+t("水流到房子周圍一圈 → 進入衝刺（rush），之後可自動連續 tick 到終點",()=>{const s=E.createGame(lvl({delay:0}));line(s,1,6,3);
+ let rushed=false,steps=0;while(s.status==="flow"&&!s.rush){E.tick(s);steps++}
+ assert.equal(s.rush,true);assert.equal(s.status,"flow");assert.deepEqual([s.fronts[0].x,s.fronts[0].y],[6,3]);
+ E.tick(s);assert.equal(s.status,"won")});
+t("斜角也算房子周圍；離房子兩格以上不算",()=>{const s=E.createGame(lvl());
+ assert(E.nearHouse(s,6,2)&&E.nearHouse(s,6,4)&&E.nearHouse(s,7,2)&&E.nearHouse(s,6,3));
+ assert(!E.nearHouse(s,5,3)&&!E.nearHouse(s,5,2)&&!E.nearHouse(s,0,0))});
+t("衝刺前水管放在房子旁邊不會改變水流",()=>{const s=E.createGame(lvl({delay:6}));E.place(s,"A",6,3,"straight",1);assert.equal(s.wait,6);assert.equal(s.rush,false)});
+t("衝刺途中漏水一樣失敗",()=>{const s=E.createGame(lvl({delay:0}));line(s,1,5,3);E.place(s,"A",6,3,"elbow",3);
+ while(s.status==="flow"&&!s.rush)E.tick(s);assert.equal(s.rush,true);E.tick(s);assert.equal(s.status,"lost")});
 console.log("\n"+n+" 個測試全部通過");

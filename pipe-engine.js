@@ -72,7 +72,7 @@
       if (straight) needS++; else needE++;
     }
     return {
-      seed: seed, start: "house", grace: 2, diff: df.id, diffName: df.name, size: N, tickMs: df.tickMs, delay: df.delay,
+      seed: seed, rushMs: 500, diff: df.id, diffName: df.name, size: N, tickMs: df.tickMs, delay: df.delay,
       source: source, target: target, obstacles: obstacles, specials: [], path: path,
       inv: { straight: needS + df.slack, elbow: needE + df.slack, tee: df.tee, cross: df.cross }
     };
@@ -83,8 +83,9 @@
     var s = {
       level: level, size: level.size, source: level.source, target: level.target,
       obst: {}, inv: {}, pipes: {}, nextId: 1, ops: {}, status: "flow", tick: 0, rounds: 0,
-      // wait＝水流出發前還要等的回合數（初級5／中級4／高級3）。start:"house"：水管裝到房子四周格子時，等待縮短成 grace 回合（提前出發）
-      wait: level.delay || 0, delay: level.delay || 0, houseTrigger: level.start === "house", early: false, grace: level.grace || 0,
+      // wait＝水流出發前先等的回合數（初級5／中級4／高級3），之後每個回合（答一次題）前進一格；
+      // rush＝水流到房子周圍一圈（8格）後改成自動衝刺，由介面每 rushMs（500ms＝每秒2格）自動呼叫 tick
+      wait: level.delay || 0, delay: level.delay || 0, rush: false, rushMs: level.rushMs || 500,
       fronts: [{ x: level.source.x, y: level.source.y, d: null, src: true }],
       visited: {}, wet: {}, failure: null, stats: {}, steps: 0
     };
@@ -109,9 +110,7 @@
     if (!(s.inv[type] > 0)) return finish(s, opId, { ok: false, err: "no_stock" });
     var p = { id: s.nextId++, type: type, x: x, y: y, rot: ((rot % 4) + 4) % 4, by: pid, t: now || Date.now() };
     s.pipes[k] = p; s.inv[type]--; pstat(s, pid).place++;
-    var trig = false;
-    if (s.houseTrigger && s.tick === 0 && s.wait > s.grace && Math.abs(x - s.target.x) + Math.abs(y - s.target.y) === 1) { s.wait = s.grace; s.early = true; trig = true; }
-    return finish(s, opId, { ok: true, pipe: p, early: trig });
+    return finish(s, opId, { ok: true, pipe: p });
   }
   function mine(s, pid, x, y) {
     var p = s.pipes[key(x, y)];
@@ -185,17 +184,19 @@
     if (won) { s.status = "won"; s.fronts = []; ev.push({ t: "win", x: won.x, y: won.y }); return ev; }
     if (fail) { s.status = "lost"; s.failure = fail; ev.push({ t: "fail", reason: fail.reason, x: fail.x, y: fail.y }); return ev; }
     s.fronts = next; s.steps++;
+    if (!s.rush && next.some(function (f) { return nearHouse(s, f.x, f.y); })) { s.rush = true; ev.push({ t: "rush" }); }
     return ev;
   }
 
+  function nearHouse(s, x, y) { return Math.max(Math.abs(x - s.target.x), Math.abs(y - s.target.y)) <= 1; } // 房子周圍一圈（含斜角）
   function counts(s) { var n = 0; for (var k in s.pipes) n++; return n; }
   function snapshot(s) { // 多人同步用（可直接 JSON 傳送）
     return { size: s.size, source: s.source, target: s.target, obstacles: s.level.obstacles, inv: s.inv,
-      pipes: Object.keys(s.pipes).map(function (k) { return s.pipes[k]; }), tick: s.tick, rounds: s.rounds, wait: s.wait, early: s.early, delay: s.delay,
+      pipes: Object.keys(s.pipes).map(function (k) { return s.pipes[k]; }), tick: s.tick, rounds: s.rounds, wait: s.wait, rush: s.rush, delay: s.delay,
       status: s.status, fronts: s.fronts, wet: s.wet, failure: s.failure };
   }
 
   var API = { DX: DX, DY: DY, TYPES: TYPES, NAMES: NAMES, DIFFS: DIFFS, opp: opp, openings: openings, makeLevel: makeLevel,
-    createGame: createGame, place: place, rotate: rotate, remove: remove, tick: tick, isWet: isWet, counts: counts, snapshot: snapshot };
+    createGame: createGame, place: place, rotate: rotate, remove: remove, tick: tick, isWet: isWet, counts: counts, snapshot: snapshot, nearHouse: nearHouse };
   if (typeof module !== "undefined" && module.exports) module.exports = API; else root.PipeEngine = API;
 })(typeof window !== "undefined" ? window : this);

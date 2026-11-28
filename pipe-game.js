@@ -51,7 +51,7 @@ function pipePlay(di) {
     '<div class="row"><button class="ghost nz" id="pp_skip" style="flex:1">⏭ 跳過這回合（不答題，水流前進一格）</button></div>' +
     '<div class="types" id="pp_types">' + PE.TYPES.map(function (t) { return '<button data-t="' + t + '"><canvas width="88" height="88"></canvas><span class="nz">' + PE.NAMES[t] + ' <b></b></span></button>'; }).join("") +
     '<button id="pp_rot" class="nz" style="flex-basis:100%;min-height:44px">↻ 轉換放置方向</button></div>' +
-    '<div class="mv"><div class="msg nz" id="pp_msg">先選動作，再點格子，答對題目才會執行。水管裝到房子旁邊（橘色虛線格）會讓水提前出發</div></div><div id="pp_log" class="nz"></div>' +
+    '<div class="mv"><div class="msg nz" id="pp_msg">先選動作，再點格子，答對題目才會執行。每答一題水流一格；流到房子周圍（橘色虛線）會自動衝刺</div></div><div id="pp_log" class="nz"></div>' +
     '<div id="pp_ov"><div class="box" id="pp_box"></div></div></div>';
   bindBack();
 
@@ -104,7 +104,7 @@ function pipePlay(di) {
   }
   var cols = ["#ffd6c9", "#cfe8ff", "#d9f2c2", "#ffe9a8"];
   function draw(now) {
-    var p = Math.min(1, (now - lastTick) / 600);
+    var p = Math.min(1, (now - lastTick) / (S.rush ? level.rushMs : 600));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cs * N, cs * N);
     var x, y, isDark = getComputedStyle(document.body).colorScheme === "dark";
     for (y = 0; y < N; y++) for (x = 0; x < N; x++) {
@@ -128,13 +128,13 @@ function pipePlay(di) {
       ctx.save(); ctx.translate(pp.x * cs, pp.y * cs);
       drawPipe(ctx, cs, pp.type, pp.rot, f && f.fill, f && f.entry, 1); ctx.restore();
     }
-    // 房子四周：還沒開始流之前用虛線標出「觸發格」
-    if (S.houseTrigger && !S.early && S.tick === 0 && S.wait > S.grace) {
+    // 房子周圍一圈：水流到這裡會自動衝刺（每秒 2 格）
+    if (!S.rush) {
       ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = "#f08a24"; ctx.lineWidth = 2;
-      [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(function (d) {
-        var hx = tg.x + d[0], hy = tg.y + d[1];
-        if (hx >= 0 && hy >= 0 && hx < N && hy < N && !S.obst[hx + "," + hy]) ctx.strokeRect(hx * cs + 3, hy * cs + 3, cs - 6, cs - 6);
-      }); ctx.restore();
+      for (var hy = tg.y - 1; hy <= tg.y + 1; hy++) for (var hx = tg.x - 1; hx <= tg.x + 1; hx++) {
+        if (hx < 0 || hy < 0 || hx >= N || hy >= N || (hx === tg.x && hy === tg.y) || S.obst[hx + "," + hy]) continue;
+        ctx.strokeRect(hx * cs + 3, hy * cs + 3, cs - 6, cs - 6);
+      } ctx.restore();
     }
     // 預覽（答題中）
     if (pending && pending.mode === "place") {
@@ -157,8 +157,9 @@ function pipePlay(di) {
   function hud() {
     if (S.status === "flow") {
       var rd = "第 " + (S.rounds + 1) + " 回合・";
-      if (S.wait > 0) setTxt("pp_st", rd + "⏳ 水流 " + S.wait + " 回合後出發" + (S.early ? "（已提前）" : ""));
-      else setTxt("pp_st", rd + "💧 水流每回合前進一格");
+      if (S.rush) setTxt("pp_st", "🌊 衝刺！每秒流 2 格");
+      else if (S.wait > 0) setTxt("pp_st", rd + "⏳ 水流 " + S.wait + " 回合後出發");
+      else setTxt("pp_st", rd + "💧 答完一題，水流前進一格");
     } else setTxt("pp_st", S.status === "won" ? "🎉 成功！" : "💥 失敗");
     setTxt("pp_cnt", "水管 " + PE.counts(S) + " 根");
   }
@@ -172,7 +173,7 @@ function pipePlay(di) {
     else if (act.mode === "rotate") r = PE.rotate(S, ME, act.x, act.y, "o" + Date.now() + Math.random());
     else r = PE.remove(S, ME, act.x, act.y, "o" + Date.now() + Math.random());
     if (r.ok) { log("✅ " + LABEL[act.mode] + "（" + (act.x + 1) + "," + (act.y + 1) + "）"); say("成功！" + LABEL[act.mode]);
-      if (r.early) { log("💧 水管裝到房子旁邊，水提前出發！"); say("水提前出發了！" + S.wait + " 回合後前進第一格，快接到水源"); } }
+    }
     else { say("這步沒成功：" + (PP_ERR[r.err] || r.err)); log("⚠️ " + (PP_ERR[r.err] || r.err)); hit = { x: act.x, y: act.y, t: performance.now() }; }
     icons(); return r.ok;
   }
@@ -204,7 +205,7 @@ function pipePlay(di) {
   app.querySelectorAll("#pp_types button[data-t]").forEach(function (b) { b.onclick = function () { ptype = b.dataset.t; mode = "place"; icons(); }; });
   $("#pp_rot").onclick = function () { prot = (prot + 1) % 4; icons(); };
   cv.addEventListener("pointerdown", function (e) {
-    if (ended || pending) return;
+    if (ended || pending || S.rush) return;
     var r = cv.getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / cs), y = Math.floor((e.clientY - r.top) / cs);
     if (x < 0 || y < 0 || x >= N || y >= N) return;
     var k = x + "," + y, pipe = S.pipes[k], why = null;
@@ -228,8 +229,8 @@ function pipePlay(di) {
     $("#pp_ov").style.display = "flex"; pending = null;
     $("#pp_again").onclick = function () { go(pipePlay, di); }; $("#pp_home").onclick = function () { go(home); };
   }
-  function endRound() {
-    if (ended || S.status !== "flow") return;
+  function endRound(auto) {
+    if (ended || S.status !== "flow" || (S.rush && !auto)) return;
     lastTick = performance.now();
     var ev = PE.tick(S);
     {
@@ -237,13 +238,19 @@ function pipePlay(di) {
         if (e.t === "move") log("💧 水流到 (" + (e.x + 1) + "," + (e.y + 1) + ")");
         if (e.t === "fail") log("💥 " + PP_FAIL[e.reason]);
         if (e.t === "win") log("🎉 抵達終點");
+        if (e.t === "rush") { log("🌊 水流到房子周圍，開始衝刺！"); say("水開始自動衝刺，每秒 2 格！"); if (pending) closeModal(); }
       });
       if (S.status !== "flow") finish();
     }
     hud(); icons();
   }
-  $("#pp_skip").onclick = function () { if (pending || ended) return; log("⏭ 跳過回合"); endRound(); };
-  function loop(now) { raf = requestAnimationFrame(loop); hud(); draw(now); }
+  $("#pp_skip").onclick = function () { if (pending || ended || S.rush) return; log("⏭ 跳過回合"); endRound(); };
+  var lastRush = 0;
+  function loop(now) {
+    raf = requestAnimationFrame(loop);
+    if (S.rush && S.status === "flow" && !ended && now - lastRush >= level.rushMs) { lastRush = now; endRound(true); }
+    hud(); draw(now);
+  }
   layout(); icons(); hud();
   raf = requestAnimationFrame(loop);
 }
