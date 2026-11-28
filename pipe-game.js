@@ -51,7 +51,7 @@ function pipePlay(di) {
     '<div class="row"><button class="ghost nz" id="pp_skip" style="flex:1">⏭ 跳過這回合（不答題，水流前進一格）</button></div>' +
     '<div class="types" id="pp_types">' + PE.TYPES.map(function (t) { return '<button data-t="' + t + '"><canvas width="88" height="88"></canvas><span class="nz">' + PE.NAMES[t] + ' <b></b></span></button>'; }).join("") +
     '<button id="pp_rot" class="nz" style="flex-basis:100%;min-height:44px">↻ 轉換放置方向</button></div>' +
-    '<div class="mv"><div class="msg nz" id="pp_msg">先選動作，再點格子，答對題目才會執行。水管裝到房子旁邊（橘色虛線格），水就開始流</div></div><div id="pp_log" class="nz"></div>' +
+    '<div class="mv"><div class="msg nz" id="pp_msg">先選動作，再點格子，答對題目才會執行。水管裝到房子旁邊（橘色虛線格）會讓水提前出發</div></div><div id="pp_log" class="nz"></div>' +
     '<div id="pp_ov"><div class="box" id="pp_box"></div></div></div>';
   bindBack();
 
@@ -129,7 +129,7 @@ function pipePlay(di) {
       drawPipe(ctx, cs, pp.type, pp.rot, f && f.fill, f && f.entry, 1); ctx.restore();
     }
     // 房子四周：還沒開始流之前用虛線標出「觸發格」
-    if (!S.started) {
+    if (S.houseTrigger && !S.early && S.tick === 0 && S.wait > S.grace) {
       ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = "#f08a24"; ctx.lineWidth = 2;
       [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(function (d) {
         var hx = tg.x + d[0], hy = tg.y + d[1];
@@ -157,8 +157,7 @@ function pipePlay(di) {
   function hud() {
     if (S.status === "flow") {
       var rd = "第 " + (S.rounds + 1) + " 回合・";
-      if (!S.started) setTxt("pp_st", rd + "🏠 水管裝到房子旁邊，水就開始流");
-      else if (S.hold > 0) setTxt("pp_st", rd + "⏳ 水流 " + (S.hold + 1) + " 回合後出發");
+      if (S.wait > 0) setTxt("pp_st", rd + "⏳ 水流 " + S.wait + " 回合後出發" + (S.early ? "（已提前）" : ""));
       else setTxt("pp_st", rd + "💧 水流每回合前進一格");
     } else setTxt("pp_st", S.status === "won" ? "🎉 成功！" : "💥 失敗");
     setTxt("pp_cnt", "水管 " + PE.counts(S) + " 根");
@@ -173,7 +172,7 @@ function pipePlay(di) {
     else if (act.mode === "rotate") r = PE.rotate(S, ME, act.x, act.y, "o" + Date.now() + Math.random());
     else r = PE.remove(S, ME, act.x, act.y, "o" + Date.now() + Math.random());
     if (r.ok) { log("✅ " + LABEL[act.mode] + "（" + (act.x + 1) + "," + (act.y + 1) + "）"); say("成功！" + LABEL[act.mode]);
-      if (r.started) { log("💧 水管裝到房子旁邊，水開始流了！"); say("水開始流了！" + S.hold + " 回合後前進第一格，快接到水源"); } }
+      if (r.early) { log("💧 水管裝到房子旁邊，水提前出發！"); say("水提前出發了！" + S.wait + " 回合後前進第一格，快接到水源"); } }
     else { say("這步沒成功：" + (PP_ERR[r.err] || r.err)); log("⚠️ " + (PP_ERR[r.err] || r.err)); hit = { x: act.x, y: act.y, t: performance.now() }; }
     icons(); return r.ok;
   }

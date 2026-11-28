@@ -83,8 +83,8 @@
     var s = {
       level: level, size: level.size, source: level.source, target: level.target,
       obst: {}, inv: {}, pipes: {}, nextId: 1, ops: {}, status: "flow", tick: 0, rounds: 0,
-      // start:"house" ＝ 水管裝到房子四周的格子，水才開始流（之後再等 grace 回合才前進第一格）；沒設定則用舊的固定等待回合 delay
-      started: level.start !== "house", hold: 0, grace: level.grace || 0, delay: level.start === "house" ? 0 : level.delay,
+      // wait＝水流出發前還要等的回合數（初級5／中級4／高級3）。start:"house"：水管裝到房子四周格子時，等待縮短成 grace 回合（提前出發）
+      wait: level.delay || 0, delay: level.delay || 0, houseTrigger: level.start === "house", early: false, grace: level.grace || 0,
       fronts: [{ x: level.source.x, y: level.source.y, d: null, src: true }],
       visited: {}, wet: {}, failure: null, stats: {}, steps: 0
     };
@@ -110,8 +110,8 @@
     var p = { id: s.nextId++, type: type, x: x, y: y, rot: ((rot % 4) + 4) % 4, by: pid, t: now || Date.now() };
     s.pipes[k] = p; s.inv[type]--; pstat(s, pid).place++;
     var trig = false;
-    if (!s.started && Math.abs(x - s.target.x) + Math.abs(y - s.target.y) === 1) { s.started = true; s.hold = s.grace; trig = true; }
-    return finish(s, opId, { ok: true, pipe: p, started: trig });
+    if (s.houseTrigger && s.tick === 0 && s.wait > s.grace && Math.abs(x - s.target.x) + Math.abs(y - s.target.y) === 1) { s.wait = s.grace; s.early = true; trig = true; }
+    return finish(s, opId, { ok: true, pipe: p, early: trig });
   }
   function mine(s, pid, x, y) {
     var p = s.pipes[key(x, y)];
@@ -161,10 +161,8 @@
   function tick(s) {
     if (s.status !== "flow") return [];
     s.rounds++;
-    if (!s.started) return [{ t: "wait", house: true }];
-    if (s.hold > 0) { s.hold--; return [{ t: "wait", left: s.hold }]; }
+    if (s.wait > 0) { s.wait--; return [{ t: "wait", left: s.wait }]; }
     s.tick++;
-    if (s.tick <= s.delay) return [{ t: "wait", left: s.delay - s.tick }];
     var next = [], ev = [], won = null, fail = null;
     s.fronts.forEach(function (f) {
       var exits = exitsOf(s, f), res = [];
@@ -193,7 +191,7 @@
   function counts(s) { var n = 0; for (var k in s.pipes) n++; return n; }
   function snapshot(s) { // 多人同步用（可直接 JSON 傳送）
     return { size: s.size, source: s.source, target: s.target, obstacles: s.level.obstacles, inv: s.inv,
-      pipes: Object.keys(s.pipes).map(function (k) { return s.pipes[k]; }), tick: s.tick, rounds: s.rounds, started: s.started, hold: s.hold, delay: s.delay,
+      pipes: Object.keys(s.pipes).map(function (k) { return s.pipes[k]; }), tick: s.tick, rounds: s.rounds, wait: s.wait, early: s.early, delay: s.delay,
       status: s.status, fronts: s.fronts, wet: s.wet, failure: s.failure };
   }
 
