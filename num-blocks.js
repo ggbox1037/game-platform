@@ -79,6 +79,7 @@ function numBlocks() {
   }
   function fin() {
     var l = V.l; if (S.done.indexOf(l) < 0) S.done.push(l); S.unlock = Math.max(S.unlock, Math.min(5, l + 1)); save();
+    if (typeof awardBadge === "function") awardBadge("nb" + l, EMO[l], "數字積木・第" + l + "關 " + NAMES[l]);
     addStat("numblocks", who(), V.c, V.a); // 平台成績：第 l 關 答對 c／答了 a
     V.scr = S.done.length >= 5 ? "end" : "clear";
   }

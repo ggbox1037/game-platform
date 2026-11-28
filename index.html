@@ -21,6 +21,7 @@ button.ghost{background:transparent;color:var(--ink);border:2px solid var(--line
 button:disabled{opacity:.45}
 .game{text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);padding:18px}
 .game b{display:block;font-size:22px;margin-bottom:4px}.game span{color:var(--mute);font-size:15px;font-weight:400}
+.bdg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;margin:0 0 12px;font-size:16px}.bdg .bd{font-size:28px;line-height:1}.bdg .mute{color:var(--mute);font-size:14px}.bdgtoast{position:fixed;left:50%;top:18px;transform:translateX(-50%);background:var(--pri);color:#fff;border-radius:999px;padding:10px 18px;font-weight:700;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.3);animation:bdgin .4s}.bdgtoast span{font-size:24px}@keyframes bdgin{from{transform:translate(-50%,-30px);opacity:0}}
 .top{display:flex;align-items:center;gap:10px;margin-bottom:10px}.top .sp{flex:1}
 .q{font-size:44px;text-align:center;margin:18px 0;font-weight:700;word-break:break-all}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -331,6 +332,16 @@ function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorag
 var role=ls("role_v1"),sname=ls("name_v1")||"";
 function addStat(g,n,sc,t){var a=[];try{a=JSON.parse(ls("stats_v1")||"[]")}catch(e){}a.push({n:n,g:g,s:sc,t:t,d:Date.now()});if(a.length>1000)a=a.slice(-1000);ls("stats_v1",JSON.stringify(a))}
 function addWrong(n,q,a,c){var w=[];try{w=JSON.parse(ls("wrong_v1")||"[]")}catch(e){}w.push({n:n,q:q,a:a,c:c,d:Date.now()});if(w.length>200)w=w.slice(-200);ls("wrong_v1",JSON.stringify(w))}
+/* ===== 徽章：通關的遊戲／關卡會留下 emoji 徽章，顯示在學生主畫面上方（依學生姓名存在本機）===== */
+function badgeKey(){return "badges_"+(sname||"guest")}
+function getBadges(){try{return JSON.parse(ls(badgeKey())||"[]")}catch(e){return[]}}
+function awardBadge(id,emoji,name){
+  var a=getBadges();if(a.some(function(b){return b.id===id}))return false;
+  a.push({id:id,e:emoji,n:name,d:Date.now()});ls(badgeKey(),JSON.stringify(a));
+  var t=document.createElement("div");t.className="bdgtoast nz";t.innerHTML='<span>'+emoji+'</span> 獲得徽章：'+esc(name);document.body.appendChild(t);
+  setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t)},3200);return true}
+function badgeStrip(){var a=getBadges();
+  return '<div class="bdg nz"><b>🏅 我的徽章</b> '+(a.length?a.map(function(b){return '<span class="bd" title="'+esc(b.n)+'">'+b.e+'</span>'}).join(""):'<span class="mute">通關遊戲就能得到徽章</span>')+'</div>'}
 function setRole(r){role=r;ls("role_v1",r)}
 
 /* ===== 首頁（選身分）===== */
@@ -357,7 +368,7 @@ function home(){
     bindSwitch();$("#th").onclick=function(){go(host)};$("#tb").onclick=function(){go(bankEd)};$("#ts").onclick=function(){go(statsView)};$("#tr").onclick=function(){go(rpgSet)};$("#tf").onclick=function(){go(fishEd)};
     return;
   }
-  app.innerHTML='<div class="top"><h1 style="margin:0">🧒 '+nz(sname)+'</h1><div class="sp"></div>'+switchBtn()+'</div><h2>單人遊戲</h2><div class="grid">'+
+  app.innerHTML='<div class="top"><h1 style="margin:0">🧒 '+nz(sname)+'</h1><div class="sp"></div>'+switchBtn()+'</div>'+badgeStrip()+'<h2>單人遊戲</h2><div class="grid">'+
   '<button class="game" id="g0"><b>⚔️ 國字勇者</b><span>走迷宮打怪，答對選擇題攻擊，找到寶箱通關</span></button>'+
   '<button class="game" id="g1"><b>🎯 選擇題挑戰</b><span>看題目，選出正確答案</span></button>'+
   '<button class="game" id="g2"><b>🃏 翻牌配對</b><span>國字配注音、注音配國字</span></button>'+
@@ -982,7 +993,7 @@ function quiz(){
   if(bank.length<4){app.innerHTML=topbar("🎯")+'<p class="msg">題庫至少要 4 題才能玩。</p>';bindBack();return}
   var qs=shuf(bank).slice(0,10).map(mk),i=0,score=0,lock=false;
   function show(){
-    if(i>=qs.length){addStat("quiz",sname||"本機",score,qs.length);app.innerHTML=topbar("🎯 結果")+'<div class="big">'+score+' / '+qs.length+'</div><p class="msg">'+(score===qs.length?"太棒了！全對！🎉":"繼續加油！")+'</p><div class="row"><button id="again">再玩一次</button></div>';bindBack();$("#again").onclick=function(){go(quiz)};return}
+    if(i>=qs.length){addStat("quiz",sname||"本機",score,qs.length);if(score===qs.length)awardBadge("quiz","🎯","選擇題挑戰・全對");app.innerHTML=topbar("🎯 結果")+'<div class="big">'+score+' / '+qs.length+'</div><p class="msg">'+(score===qs.length?"太棒了！全對！🎉":"繼續加油！")+'</p><div class="row"><button id="again">再玩一次</button></div>';bindBack();$("#again").onclick=function(){go(quiz)};return}
     var q=qs[i];lock=false;
     app.innerHTML=topbar("🎯 第 "+(i+1)+" / "+qs.length+" 題・得分 "+score)+'<div class="q">'+esc(q.q)+'</div><div class="opts">'+q.opts.map(function(o){return '<button data-o="'+esc(o)+'">'+esc(o)+'</button>'}).join("")+'</div>';
     bindBack();
@@ -1004,7 +1015,7 @@ function memory(){
     app.innerHTML=topbar("🃏 翻牌配對・"+moves+" 步")+'<div class="mem">'+cards.map(function(c,i){var cl=c.done?"mc done":(open.indexOf(i)>=0?"mc up":"mc");return '<button class="'+cl+'" data-i="'+i+'">'+((c.done||open.indexOf(i)>=0)?esc(c.t):"？")+'</button>'}).join("")+'</div>'+(found===pick.length?'<p class="msg">🎉 全部配對成功！</p><div class="row"><button id="again">再玩一次</button></div>':"");
     bindBack();var a=$("#again");if(a)a.onclick=function(){go(memory)};
     app.querySelectorAll("[data-i]").forEach(function(b){b.onclick=function(){var i=+b.dataset.i;if(busy||cards[i].done||open.indexOf(i)>=0)return;open.push(i);draw();
-      if(open.length===2){moves++;busy=true;var x=cards[open[0]],y=cards[open[1]];setTimeout(function(){if(x.k===y.k&&x.t!==y.t||(x.k===y.k)){x.done=y.done=true;found++;if(found===pick.length)addStat("memory",sname||"本機",1,1)}open=[];busy=false;draw()},900)}}});
+      if(open.length===2){moves++;busy=true;var x=cards[open[0]],y=cards[open[1]];setTimeout(function(){if(x.k===y.k&&x.t!==y.t||(x.k===y.k)){x.done=y.done=true;found++;if(found===pick.length){addStat("memory",sname||"本機",1,1);awardBadge("memory","🃏","翻牌配對・全部配對成功")}}open=[];busy=false;draw()},900)}}});
   }
   draw();
 }
@@ -1454,7 +1465,7 @@ function rpg(){
       return;
     }
     $('vicm').textContent='擊敗怪物 '+dn+' 隻，答對 '+ok+' 題，等級 Lv.'+(1+Math.floor(ok/2));
-    $('victory').style.display='flex';$('vagain').focus();
+    awardBadge('rpg','⚔️','國字勇者・通關');$('victory').style.display='flex';$('vagain').focus();
   }
   $('vagain').onclick=start;$('dagain').onclick=start;
   $('vhome').onclick=function(){go(home)};$('dhome').onclick=function(){go(home)};
@@ -1653,6 +1664,7 @@ $('btnNext').onclick=()=>{
 };
 function finish(win){
  show('end');
+ if(win)awardBadge('robinson','🏝️','魯濱遜漂流記・存活 14 回合');
  $('endIcon').textContent=win?'🎉':'💀';
  $('endTitle').textContent=win?'勝利!你在島上存活下來':'失敗…你沒能撐過去';
  $('endText').textContent=win?`撐過 14 回合,剩餘生命 ${st.hp},食物 ${st.food},木頭 ${st.wood}。`:`在第 ${round+1} 回合生命降至 0。`;

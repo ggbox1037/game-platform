@@ -211,6 +211,7 @@ function pipePlay(di) {
   function finish() {
     ended = true; var won = S.status === "won";
     addStat("pipe", sname || "本機", won ? 1 : 0, PE.counts(S));
+    if (won && typeof awardBadge === "function") awardBadge("pipe_" + diff.id, { easy: "💧", mid: "🌊", hard: "🔧" }[diff.id] || "🔧", "水管工・" + diff.name + "通關");
     var st = S.stats[ME] || { place: 0, rotate: 0, remove: 0 };
     $("#pp_box").innerHTML = '<h2 style="margin:0 0 8px">' + (won ? "🎉 水流到終點了！" : "💥 失敗了") + '</h2>' +
       '<p>' + (won ? "太棒了，管線接通！" : (PP_FAIL[S.failure && S.failure.reason] || "")) + '</p>' +
